@@ -48,6 +48,15 @@ function hasRunToken(header: string | undefined): boolean {
 
 app.get("/api/company", async () => ({ addresses: config.companyAddresses, demo_mode: !config.runToken }));
 
+const EVAL_DIR = path.resolve(process.env.EVAL_DIR ?? "../../eval/results");
+app.get<{ Params: { name: string } }>("/api/eval/:name", async (req, reply) => {
+  if (!/^[a-z0-9-]{1,40}$/.test(req.params.name)) return reply.code(400).send({ error: "bad name" });
+  const file = path.join(EVAL_DIR, `${req.params.name}.json`);
+  if (!existsSync(file)) return reply.code(404).send({ error: "no such result" });
+  reply.header("cache-control", "public, max-age=300");
+  return JSON.parse(readFileSync(file, "utf8"));
+});
+
 app.get("/api/showcase", async (_req, reply) => {
   const s = showcase();
   return s ?? reply.code(404).send({ error: "no completed errand yet" });
