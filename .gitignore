@@ -1,0 +1,51 @@
+# deps / build
+node_modules/
+.next/
+dist/
+build/
+coverage/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.turbo/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# runtime data
+data/
+runs/
+*.log
+.mitmproxy/
+
+# internal / working (never published)
+BRIEF.md
+SHIP-STATE.md
+ALTERNATIVES.md
+NOTES.md
+RESUME.md
+submission*.md
+.remember/
+MEMORY.md
+superpowers/
+docs/superpowers/
+plans/
+specs/
+.agents/
+.claude/
+*-internal/
+*-backup*
+*.bundle
+scratch/
+ui-prototypes/
+mockups/
+design-ref/
+variants/
+video/
+screencast/
