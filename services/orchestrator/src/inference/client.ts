@@ -1,7 +1,7 @@
 import { config } from "../config.js";
 
 /**
- * Thin client for Vultr Serverless Inference (OpenAI-compatible chat + the decisions API).
+ * Thin client for Vultr Serverless Inference (chat completions + the decisions API).
  *
  * Every chat response's `model` field is compared with the requested id: the service silently
  * falls back to a default model on an unknown id, and we never want to report a run as
