@@ -84,6 +84,7 @@ export async function runActor(ctx: ActorContext, session: BrowserSession): Prom
   const maxSteps = ctx.maxSteps ?? config.limits.actorMaxSteps;
   const history: HistoryItem[] = [];
   const screenedUrls = new Map<string, string>();
+  const recorded = new Set<string>();
   let consecutiveErrors = 0;
 
   await session.navigate(ctx.startUrl).catch((e) => history.push({ step: 0, action: `navigate ${ctx.startUrl}`, result: `error: ${String(e).slice(0, 200)}` }));
@@ -203,7 +204,8 @@ export async function runActor(ctx: ActorContext, session: BrowserSession): Prom
           };
           const evidence = await session.screenshot({ quality: 80 }).catch(() => shot ?? Buffer.alloc(0));
           ctx.onQuote?.(quote, evidence);
-          result = "recorded";
+          recorded.add(quote.product.toLowerCase());
+          result = `recorded (${recorded.size} product${recorded.size === 1 ? "" : "s"} so far: ${[...recorded].join("; ")}). Do not record the same product again.`;
           break;
         }
         case "done":

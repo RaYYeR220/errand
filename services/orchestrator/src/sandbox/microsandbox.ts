@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { createServer } from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { Sandbox, NetworkPolicy, Rule, Destination } from "microsandbox";
+import { Sandbox, NetworkPolicy, Destination } from "microsandbox";
 import type { ExecResult, SandboxIsolation } from "@errand/shared";
 
 /**
@@ -48,6 +48,12 @@ const MSB_HOME = process.env.MSB_HOME ?? path.join(os.homedir(), ".microsandbox"
  * their certificates come from a local CA. Production suppliers are public hosts and need neither.
  */
 const DEV_HOST_IP = process.env.SANDBOX_DEV_HOST_IP;
+if (DEV_HOST_IP) {
+  if (process.env.NODE_ENV === "production") throw new Error("SANDBOX_DEV_HOST_IP is a local development setting and is refused in production");
+  if (!/^(10|172\.(1[6-9]|2\d|3[01])|192\.168)\.\d{1,3}\.\d{1,3}(\.\d{1,3})?$/.test(DEV_HOST_IP) || DEV_HOST_IP.split(".").length !== 4) {
+    throw new Error("SANDBOX_DEV_HOST_IP must be a single private IPv4 address");
+  }
+}
 const DEV_UPSTREAM_CA = process.env.SANDBOX_UPSTREAM_CA;
 
 const live = new Map<string, Sandbox>();
@@ -125,8 +131,10 @@ export async function createBrowserSandbox(opts: {
   builder = builder.network((n: any) => {
     let net = n;
     if (DEV_HOST_IP) {
-      const base = NetworkPolicy.fromProfiles(["public", "host"]);
-      net = net.policy({ ...base, rules: [Rule.allowEgress(Destination.cidr(`${DEV_HOST_IP}/32`)), ...base.rules] });
+      // Public egress plus exactly one private destination: HTTPS on the development machine.
+      const base = NetworkPolicy.fromProfiles(["public"]);
+      const storeRule = { direction: "egress", destination: Destination.cidr(`${DEV_HOST_IP}/32`), protocols: ["tcp"], ports: [{ start: 443, end: 443 }], action: "allow" } as const;
+      net = net.policy({ ...base, rules: [storeRule, ...base.rules] });
     }
     if (DEV_UPSTREAM_CA) net = net.tls((t: any) => t.upstreamCaCert(path.resolve(DEV_UPSTREAM_CA)));
     for (const s of opts.secrets) {
@@ -163,7 +171,7 @@ export async function createBrowserSandbox(opts: {
     isolation: {
       backend: "microsandbox",
       kernel: await guestKernel(sb),
-      network_policy: `public egress; credentials bound to ${[...new Set(opts.secrets.flatMap((s) => s.allowHosts))].join(", ") || "none"}`,
+      network_policy: `public egress${DEV_HOST_IP ? ` + tcp/443 to ${DEV_HOST_IP} (local development)` : ""}; credentials bound to ${[...new Set(opts.secrets.flatMap((s) => s.allowHosts))].join(", ") || "none"}`,
       limits: { cpus, memory_mb: memory, timeout_s: maxDuration },
     },
   };

@@ -242,7 +242,11 @@ async function visitSupplier(run: Run, s: Supplier, index: number, plan: Plan) {
           const evidenceUrl = run.saveFrame(`${s.id}-quote`, evidence);
           const text = await session!.visibleText().catch(() => "");
           const verification = await verifyQuote(quote, evidence, text);
-          st.quotes.push({ quote, verification, evidence: evidenceUrl });
+          // A product recorded twice replaces its earlier record.
+          const key = (q: Quote) => `${q.supplier}|${(q.sku || q.product).toLowerCase().trim()}`;
+          const existing = st.quotes.findIndex((x) => key(x.quote) === key(quote));
+          if (existing >= 0) st.quotes.splice(existing, 1, { quote, verification, evidence: evidenceUrl });
+          else st.quotes.push({ quote, verification, evidence: evidenceUrl });
           L.append("verify", `Quote ${verification.verdict}: ${quote.product} @ $${quote.unit_price_usd}`, { quote, verification, evidence: evidenceUrl }, s.id);
           run.update();
         },
