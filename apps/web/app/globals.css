@@ -1,26 +1,413 @@
 @import "tailwindcss";
 
+/* Tokens. The landing art direction retunes these; the app surfaces read only tokens. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --bg: #f4f3ef;
+  --surface: #ffffff;
+  --ink: #17160f;
+  --ink-2: #57544a;
+  --ink-3: #8b877b;
+  --line: color-mix(in oklab, var(--ink) 10%, transparent);
+  --line-strong: color-mix(in oklab, var(--ink) 18%, transparent);
+  --accent: #2f6b4f;
+  --accent-ink: #ffffff;
+  --ok: #2f6b4f;
+  --warn: #9a6a12;
+  --bad: #a3392f;
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 16px;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --bg: #12110d;
+    --surface: #1a1914;
+    --ink: #eeece4;
+    --ink-2: #b4b0a3;
+    --ink-3: #7d796d;
+    --accent: #6fbf95;
+    --accent-ink: #0f1a14;
+    --ok: #6fbf95;
+    --warn: #d9a441;
+    --bad: #e07a6e;
   }
 }
 
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+.shell {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 32px 16px 96px;
+}
+
+.eyebrow {
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 8px;
+}
+.muted {
+  color: var(--ink-2);
+}
+.small {
+  font-size: 13px;
+}
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+/* run view */
+.run {
+  display: grid;
+  gap: 20px;
+}
+.run-head {
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.run-title {
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 6px;
+  max-width: 60ch;
+}
+.run-meta {
+  color: var(--ink-2);
+  margin: 0;
+  font-size: 14px;
+}
+.run-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.run-status .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--ink-3);
+}
+.run-status.s-awaiting_approval .dot {
+  background: var(--warn);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.run-status.s-completed .dot {
+  background: var(--ok);
+}
+.run-status.s-failed .dot,
+.run-status.s-rejected .dot {
+  background: var(--bad);
+}
+.run-status.s-browsing .dot,
+.run-status.s-ordering .dot,
+.run-status.s-computing .dot,
+.run-status.s-planning .dot {
+  background: var(--accent);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: 18px;
+}
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.panel h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 2px;
+  letter-spacing: -0.01em;
+}
+.panel h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 14px 0 8px;
+}
+.panel p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.suppliers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 20px;
+}
+@media (max-width: 520px) {
+  .suppliers {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chip {
+  font: 500 12px/1 var(--font-mono);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--ink-2);
+}
+.chip.c-done,
+.chip.c-placed,
+.chip.c-approved {
+  color: var(--ok);
+  border-color: color-mix(in oklab, var(--ok) 40%, transparent);
+}
+.chip.c-failed,
+.chip.c-rejected {
+  color: var(--bad);
+  border-color: color-mix(in oklab, var(--bad) 40%, transparent);
+}
+.chip.c-held {
+  color: var(--warn);
+  border-color: color-mix(in oklab, var(--warn) 40%, transparent);
+}
+
+.frame {
+  aspect-ratio: 1280 / 860;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  background: color-mix(in oklab, var(--ink) 4%, var(--surface));
+}
+.frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+.frame-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.iso {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+.iso dt {
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.iso dd {
+  margin: 2px 0 0;
+}
+@media (max-width: 520px) {
+  .iso {
+    grid-template-columns: 1fr;
+  }
+}
+
+table.quotes,
+table.landed {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 13px;
+}
+table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink-3);
+  font-size: 12px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+table a {
+  color: inherit;
+  text-decoration-color: var(--line-strong);
+}
+table.landed tr.win td {
+  background: color-mix(in oklab, var(--ok) 10%, transparent);
+  font-weight: 600;
+}
+table.landed tr.out td {
+  color: var(--ink-3);
+}
+
+.verdict {
+  font: 500 11px/1 var(--font-mono);
+  padding: 4px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+}
+.verdict.v-pass {
+  color: var(--ok);
+}
+.verdict.v-fail {
+  color: var(--bad);
+}
+.verdict.v-unverified {
+  color: var(--warn);
+}
+
+.hold {
+  border-color: color-mix(in oklab, var(--warn) 45%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--warn) 10%, transparent);
+}
+.hold-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+@media (max-width: 900px) {
+  .hold-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.hold-shot {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+.checks {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.checks li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+}
+.checks li b {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.checks li.ok b {
+  color: var(--ok);
+}
+.checks li.warn b,
+.checks li.na b {
+  color: var(--warn);
+}
+.checks li.bad b {
+  color: var(--bad);
+}
+pre.body,
+details pre {
+  font: 12px/1.5 var(--font-mono);
+  background: color-mix(in oklab, var(--ink) 4%, var(--surface));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 10px;
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.btn {
+  font: 500 14px/1 var(--font-sans);
+  padding: 11px 16px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.error {
+  color: var(--bad);
+  margin-top: 8px;
+}
+
+.ledger .entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 420px;
+  overflow: auto;
+  font: 12px/1.5 var(--font-mono);
+}
+.ledger .entries li {
+  display: grid;
+  grid-template-columns: 40px 76px 90px 1fr;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ledger .seq,
+.ledger .sup {
+  color: var(--ink-3);
+}
+.ledger .kind {
+  color: var(--ink-2);
+}
+.ledger li.k-hold .kind,
+.ledger li.k-approval .kind {
+  color: var(--warn);
+}
+.ledger li.k-verify .kind,
+.ledger li.k-receipt .kind {
+  color: var(--ok);
+}
+.run-empty {
+  padding: 80px 0;
+  color: var(--ink-2);
 }

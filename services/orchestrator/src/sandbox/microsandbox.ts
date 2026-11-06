@@ -131,9 +131,10 @@ export async function createBrowserSandbox(opts: {
   builder = builder.network((n: any) => {
     let net = n;
     if (DEV_HOST_IP) {
-      // Public egress plus exactly one private destination: HTTPS on the development machine.
+      // Public egress plus exactly one private address: the development machine serving the stores.
+      // (An address rule without port limits is what lets the runtime accept DNS answers for it.)
       const base = NetworkPolicy.fromProfiles(["public"]);
-      const storeRule = { direction: "egress", destination: Destination.cidr(`${DEV_HOST_IP}/32`), protocols: ["tcp"], ports: [{ start: 443, end: 443 }], action: "allow" } as const;
+      const storeRule = { direction: "egress", destination: Destination.cidr(`${DEV_HOST_IP}/32`), protocols: [], ports: [], action: "allow" } as const;
       net = net.policy({ ...base, rules: [storeRule, ...base.rules] });
     }
     if (DEV_UPSTREAM_CA) net = net.tls((t: any) => t.upstreamCaCert(path.resolve(DEV_UPSTREAM_CA)));
@@ -171,7 +172,7 @@ export async function createBrowserSandbox(opts: {
     isolation: {
       backend: "microsandbox",
       kernel: await guestKernel(sb),
-      network_policy: `public egress${DEV_HOST_IP ? ` + tcp/443 to ${DEV_HOST_IP} (local development)` : ""}; credentials bound to ${[...new Set(opts.secrets.flatMap((s) => s.allowHosts))].join(", ") || "none"}`,
+      network_policy: `public egress${DEV_HOST_IP ? ` + ${DEV_HOST_IP} (local development)` : ""}; credentials bound to ${[...new Set(opts.secrets.flatMap((s) => s.allowHosts))].join(", ") || "none"}`,
       limits: { cpus, memory_mb: memory, timeout_s: maxDuration },
     },
   };
