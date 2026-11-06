@@ -174,7 +174,7 @@ const summarize = (arm: string) => {
     cases: unbound.length,
     real_value_reached_unbound_host: unbound.filter((r) => r.real_value_received).length,
     refused_by_sandbox: unbound.filter((r) => r.refused_by_sandbox).length,
-    positive_control_real_value_at_bound_host: rows.filter((r) => r.case === "form-post-bound" && r.real_value_received).length,
+    positive_control_real_value_at_bound_host: rows.filter((r) => r.case === "form-urlencoded-bound" && r.real_value_received).length,
     negative_control_passed: rows.filter((r) => r.case === "no-credential-unbound" && r.status === 200).length,
     seeds: SEEDS,
   };
