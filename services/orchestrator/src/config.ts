@@ -18,6 +18,16 @@ export const config = {
   dataDir: path.resolve(env("DATA_DIR", "./data")),
   /** Required for evaluation-only features (auto-approve). Unset → those features are off. */
   adminToken: optional("ADMIN_TOKEN"),
+  /**
+   * Company deployment: when set, creating an errand requires `Authorization: Bearer <RUN_TOKEN>`.
+   * The public demo leaves it unset so visitors can run errands against the demo supplier network.
+   */
+  runToken: optional("RUN_TOKEN"),
+  /** The company's address book; an errand can only ship to one of these. */
+  companyAddresses: (process.env.COMPANY_ADDRESSES ?? "Lumen Labs, 500 Market St, Suite 400, San Francisco, CA 94105|Lumen Labs Warehouse, 2200 Harbor Blvd, Oakland, CA 94607")
+    .split("|")
+    .map((a) => a.trim())
+    .filter(Boolean),
   /** Origin of the web app allowed by CORS. */
   webOrigin: env("WEB_ORIGIN", "http://localhost:3000"),
 

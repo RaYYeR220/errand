@@ -110,7 +110,7 @@ export const ErrandInput = z.object({
   quantity: z.number().int().min(1).max(500).default(12),
   budget_usd: z.number().positive().max(100_000).default(2400),
   deadline_business_days: z.number().int().min(1).max(60).default(3),
-  ship_to: z.string().min(5).max(300).default("Lumen Labs, 500 Market St, Suite 400, San Francisco, CA 94105"),
+  ship_to: z.string().min(5).max(300).default(() => config.companyAddresses[0] ?? ""),
   suppliers: z.array(z.string().max(40)).min(1).max(5).optional(),
   test_case: z.string().regex(/^[a-z0-9-]{1,32}$/).optional(),
   auto_approve: z.boolean().optional(),
@@ -122,6 +122,9 @@ export function enqueue(input: unknown): Run {
   const suppliers = [...new Set(parsed.suppliers ?? known)];
   const unknown = suppliers.filter((s) => !known.includes(s));
   if (unknown.length) throw new z.ZodError([{ code: "custom", path: ["suppliers"], message: `unknown supplier(s): ${unknown.join(", ")}`, input: unknown }]);
+  if (!config.companyAddresses.includes(parsed.ship_to)) {
+    throw new z.ZodError([{ code: "custom", path: ["ship_to"], message: "ship_to must be one of the company's addresses", input: parsed.ship_to }]);
+  }
   const request: RunState["request"] = { ...parsed, suppliers };
   const id = newRunId();
   const now = new Date().toISOString();

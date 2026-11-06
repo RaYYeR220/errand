@@ -37,7 +37,20 @@ app.get("/api/suppliers", async () =>
   supplierDefs().map((s) => ({ id: s.id, name: s.name, platform: s.platform, base_url: s.base_url.replace("{BASE_DOMAIN}", config.suppliers.baseDomain) })),
 );
 
+function hasRunToken(header: string | undefined): boolean {
+  if (!config.runToken) return true; // public demo mode
+  if (!header) return false;
+  const a = Buffer.from(header);
+  const b = Buffer.from(`Bearer ${config.runToken}`);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+app.get("/api/company", async () => ({ addresses: config.companyAddresses, demo_mode: !config.runToken }));
+
 app.post("/api/runs", async (req, reply) => {
+  if (!hasRunToken(req.headers.authorization) && !isAdmin(req.headers.authorization)) {
+    return reply.code(401).send({ error: "this deployment requires a run token" });
+  }
   const parsed = ErrandInput.safeParse(req.body ?? {});
   if (!parsed.success) return reply.code(400).send({ error: "invalid errand", issues: parsed.error.issues });
   if (parsed.data.auto_approve && !isAdmin(req.headers.authorization)) {
