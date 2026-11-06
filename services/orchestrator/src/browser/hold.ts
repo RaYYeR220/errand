@@ -25,7 +25,13 @@ const ORDERISH = /(checkout|place[-_]?order|complete|submit[-_]?order|(^|[^a-z_]
 /** Lowercase path, collapse duplicate slashes, drop a trailing slash, sort query parameters. */
 export function normalizeTarget(rawUrl: string): string {
   const url = new URL(rawUrl);
-  let p = decodeURIComponent(url.pathname).toLowerCase().replace(/\/{2,}/g, "/");
+  let decoded = url.pathname;
+  try {
+    decoded = decodeURIComponent(url.pathname);
+  } catch {
+    /* malformed escapes: match on the raw path */
+  }
+  let p = decoded.toLowerCase().replace(/\/{2,}/g, "/");
   if (p.length > 1) p = p.replace(/\/+$/, "");
   const params = [...url.searchParams.entries()].map(([k, v]) => [k.toLowerCase(), v.toLowerCase()] as const).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   const q = params.map(([k, v]) => `${k}=${v}`).join("&");
@@ -106,7 +112,8 @@ export class OrderHold {
     const rule = this.rules.find((r) => r.method.toUpperCase() === method && host === r.host.toLowerCase() && new RegExp(r.pathRegex, "i").test(target));
     if (rule) return rule;
     if (this.catchAll && method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && host === this.catchAll.host.toLowerCase()) {
-      const safe = this.catchAll.safe.some((p) => new RegExp(p, "i").test(target));
+      // Safe patterns must describe the whole normalized target, not a fragment of it.
+      const safe = this.catchAll.safe.some((p) => new RegExp(`^(?:${p})$`, "i").test(target));
       if (!safe && ORDERISH.test(target)) return { id: "catch-all", label: "Possible order request", host, method, pathRegex: ".*" };
     }
     return undefined;
@@ -121,7 +128,8 @@ export class OrderHold {
       try {
         rule = this.match(req);
       } catch {
-        rule = undefined;
+        // Fail closed: a request we cannot classify during the order phase is held like an order.
+        rule = req.method().toUpperCase() === "GET" ? undefined : { id: "unclassified", label: "Unclassified request", host: "", method: req.method(), pathRegex: ".*" };
       }
       if (!rule) return route.fallback();
       if (this.pending.size > 0) {

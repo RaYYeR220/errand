@@ -25,7 +25,7 @@ describe("OrderHold.match", () => {
 describe("OrderHold normalization and catch-all", () => {
   const h = new OrderHold({} as any, [
     { id: "woo", label: "Place order", host: "acme.example.test", method: "POST", pathRegex: "^/[?](.*&)?wc-ajax=checkout(&.*)?$" },
-  ], () => {}, () => {}, 1000, { host: "acme.example.test", safe: ["wc-ajax=update_order_review", "wc-ajax=get_refreshed_fragments"] });
+  ], () => {}, () => {}, 1000, { host: "acme.example.test", safe: ["/[?]wc-ajax=update_order_review", "/[?]wc-ajax=get_refreshed_fragments"] });
 
   it("matches regardless of query order, case and duplicate slashes", () => {
     expect(h.match(fakeReq("POST", "https://acme.example.test/?x=1&wc-ajax=checkout"))?.id).toBe("woo");
@@ -39,5 +39,12 @@ describe("OrderHold normalization and catch-all", () => {
     expect(h.match(fakeReq("POST", "https://acme.example.test/?wc-ajax=update_order_review"))).toBeUndefined();
     expect(h.match(fakeReq("POST", "https://acme.example.test/?wc-ajax=add_to_cart"))).toBeUndefined();
     expect(h.match(fakeReq("GET", "https://acme.example.test/checkout/"))).toBeUndefined();
+  });
+  it("a safe pattern cannot be smuggled inside another target", () => {
+    expect(h.match(fakeReq("POST", "https://acme.example.test/wp-json/wc/store/v1/checkout?x=wc-ajax=update_order_review"))?.id).toBe("catch-all");
+  });
+  it("normalization survives malformed escapes", () => {
+    expect(() => h.match(fakeReq("POST", "https://acme.example.test/%E0%A4%A/checkout"))).not.toThrow();
+    expect(h.match(fakeReq("POST", "https://acme.example.test/%E0%A4%A/checkout"))?.id).toBe("catch-all");
   });
 });
