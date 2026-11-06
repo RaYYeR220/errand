@@ -19,8 +19,7 @@ __pycache__/
 secrets/
 
 # runtime data
-data/
-runs/
+services/*/data/
 *.log
 .mitmproxy/
 
