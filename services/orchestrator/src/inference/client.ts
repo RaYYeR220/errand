@@ -106,13 +106,22 @@ export async function chat(req: ChatRequest): Promise<ChatResult> {
   return { model: json.model, message: choice.message, finish_reason: choice.finish_reason, usage: json.usage, latency_ms };
 }
 
-export async function chatJson<T>(req: Omit<ChatRequest, "response_format">, name: string, schema: Record<string, unknown>): Promise<{ value: T; result: ChatResult }> {
-  const result = await chat({ ...req, response_format: { type: "json_schema", json_schema: { name, schema, strict: true } } });
+/**
+ * Structured output through a single required tool call. (With `response_format: json_schema` some
+ * served models finish the object and then pad with whitespace up to max_tokens; a tool call ends cleanly.)
+ */
+export async function chatJson<T>(req: Omit<ChatRequest, "response_format" | "tools" | "tool_choice">, name: string, schema: Record<string, unknown>): Promise<{ value: T; result: ChatResult }> {
+  const result = await chat({
+    ...req,
+    tool_choice: "required",
+    tools: [{ type: "function", function: { name, description: `Submit the ${name.replace(/_/g, " ")}.`, parameters: schema } }],
+  });
+  const args = result.message.tool_calls?.[0]?.function.arguments;
   const content = typeof result.message.content === "string" ? result.message.content : "";
   try {
-    return { value: JSON.parse(stripFences(content)) as T, result };
+    return { value: JSON.parse(args ?? stripFences(content)) as T, result };
   } catch {
-    throw new InferenceError(`model returned non-JSON content for ${name}`);
+    throw new InferenceError(`model returned no parsable ${name} (finish_reason ${result.finish_reason})`);
   }
 }
 
