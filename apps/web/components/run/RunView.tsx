@@ -80,6 +80,16 @@ function SupplierPanel({ s }: { s: any }) {
         {s.frame ? <img src={s.frame} alt={`Live view of the browser on ${s.name}`} /> : <div className="frame-empty">Starting microVM…</div>}
       </div>
       {s.isolation && <Isolation iso={s.isolation} credential={`${s.id}.password`} host={s.host} />}
+      {s.probe && (
+        <div className={`probe ${s.probe.refused ? "ok" : "warn"}`}>
+          <p className="eyebrow">Containment probe</p>
+          <p>
+            This browser sent its credential <code>{s.probe.sent}</code> to <code>{s.probe.host}</code>, a host it is not bound to.{" "}
+            {s.probe.refused ? <b>The sandbox runtime refused the request.</b> : <b>The request was not refused.</b>}
+          </p>
+          <pre className="body">{s.probe.response}</pre>
+        </div>
+      )}
       {s.quotes?.length > 0 && (
         <table className="quotes">
           <thead>

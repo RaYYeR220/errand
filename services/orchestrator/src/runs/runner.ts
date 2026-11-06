@@ -7,6 +7,7 @@ import { config } from "../config.js";
 import { Ledger } from "./ledger.js";
 import { BrowserSession } from "../browser/session.js";
 import { OrderHold, type HeldRequest, type HoldDecision } from "../browser/hold.js";
+import { probeUnboundHost, type ProbeResult } from "../browser/probe.js";
 import * as sandboxes from "../sandbox/microsandbox.js";
 import { resolveSupplier, supplierDefs, type Supplier } from "../suppliers.js";
 import { z } from "zod";
@@ -25,6 +26,7 @@ export interface SupplierState {
   quotes: { quote: Quote; verification: VerifyResult; evidence: string }[];
   frame?: string;
   summary?: string;
+  probe?: ProbeResult;
 }
 
 export interface OrderState {
@@ -282,6 +284,16 @@ async function visitSupplier(run: Run, s: Supplier, index: number, plan: Plan) {
     );
     st.status = outcome.status === "done" ? "done" : st.quotes.length ? "done" : "failed";
     st.summary = outcome.summary;
+    // Containment probe: send this browser's credential to a host it is not bound to.
+    const probe = await probeUnboundHost(session, box.placeholders[`${s.id}.password`]!);
+    st.probe = probe;
+    L.append(
+      "sandbox",
+      probe.refused ? `Containment probe: credential refused on its way to ${probe.host}` : `Containment probe: ${probe.host} answered without a refusal`,
+      { ...probe },
+      s.id,
+    );
+    run.update();
   } catch (e) {
     st.status = "failed";
     st.summary = String(e).slice(0, 300);
