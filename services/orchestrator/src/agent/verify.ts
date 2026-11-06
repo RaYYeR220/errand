@@ -99,10 +99,12 @@ const MONEY = /\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)/;
 /** Find the order total on a checkout page ("Total $2,340.00" and similar). */
 export function totalFromPage(text: string): number | null {
   const found: number[] = [];
-  for (const line of text.split(/\n+/)) {
-    if (!/\btotal\b/i.test(line) || /sub\s*-?total|per unit|\btax\b/i.test(line)) continue;
-    const m = line.match(MONEY);
+  const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  lines.forEach((line, i) => {
+    if (!/\btotal\b/i.test(line) || /sub\s*-?total|per unit|\btax\b/i.test(line)) return;
+    // The amount may sit on the same line or on the next one ("Total" / "$2,340.00").
+    const m = line.match(MONEY) ?? (lines[i + 1] && !/\btotal\b/i.test(lines[i + 1]!) ? lines[i + 1]!.match(MONEY) : null);
     if (m) found.push(Number(m[1]!.replace(/,/g, "")));
-  }
+  });
   return found.length ? Math.max(...found) : null;
 }

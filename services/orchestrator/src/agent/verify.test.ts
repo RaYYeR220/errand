@@ -9,6 +9,9 @@ describe("totalFromPage", () => {
   it("handles totals without thousands separators", () => {
     expect(totalFromPage("Order total: $989.50")).toBe(989.5);
   });
+  it("reads a total whose amount is on the next line", () => {
+    expect(totalFromPage("Subtotal\n$2,340.00\nShipping\nFree\nTotal\n$2,340.00\nPlace order")).toBe(2340);
+  });
   it("returns null when no total is shown", () => {
     expect(totalFromPage("Checkout\nShipping address\nContinue")).toBeNull();
   });
