@@ -1,0 +1,57 @@
+import path from "node:path";
+
+function env(name: string, fallback?: string): string {
+  const v = process.env[name];
+  if (v !== undefined && v !== "") return v;
+  if (fallback !== undefined) return fallback;
+  throw new Error(`Missing required environment variable ${name}`);
+}
+
+function optional(name: string): string | undefined {
+  const v = process.env[name];
+  return v === undefined || v === "" ? undefined : v;
+}
+
+export const config = {
+  port: Number(env("PORT", "4000")),
+  publicUrl: env("PUBLIC_URL", "http://localhost:4000"),
+  dataDir: path.resolve(env("DATA_DIR", "./data")),
+  adminToken: env("ADMIN_TOKEN", "dev-admin-token"),
+
+  inference: {
+    baseUrl: env("INFERENCE_BASE_URL", "https://api.vultrinference.com/v1"),
+    apiKey: optional("INFERENCE_API_KEY"),
+    models: {
+      planner: env("MODEL_PLANNER", "glm-5.3"),
+      actor: env("MODEL_ACTOR", "glm-5.3-flash"),
+      coder: env("MODEL_CODER", "glm-5.3"),
+      verifier: env("MODEL_VERIFIER", "clef"),
+      safety: env("MODEL_SAFETY", "nemotron-3.5-content-safety"),
+    },
+  },
+
+  hold: {
+    timeoutS: Number(env("HOLD_TIMEOUT_S", "600")),
+  },
+
+  suppliers: {
+    file: env("SUPPLIERS_FILE", "../../suppliers/suppliers.json"),
+    baseDomain: env("BASE_DOMAIN", "localtest.me"),
+    scheme: env("SUPPLIER_SCHEME", "https"),
+  },
+
+  receipts: {
+    endpoint: optional("OBJECT_STORAGE_ENDPOINT"),
+    bucket: optional("OBJECT_STORAGE_BUCKET"),
+    accessKey: optional("OBJECT_STORAGE_ACCESS_KEY"),
+    secretKey: optional("OBJECT_STORAGE_SECRET_KEY"),
+    region: env("OBJECT_STORAGE_REGION", "us-east-1"),
+  },
+
+  limits: {
+    maxConcurrentRuns: Number(env("MAX_CONCURRENT_RUNS", "2")),
+    actorMaxSteps: Number(env("ACTOR_MAX_STEPS", "40")),
+    browserMemoryMb: Number(env("BROWSER_MEMORY_MB", "1536")),
+    computeMemoryMb: Number(env("COMPUTE_MEMORY_MB", "512")),
+  },
+};
