@@ -1,0 +1,20 @@
+[Unit]
+Description=Errand web app
+After=network-online.target errand-orchestrator.service
+
+[Service]
+User=errand
+Group=errand
+WorkingDirectory=/opt/errand/apps/web
+Environment=NODE_ENV=production
+Environment=ORCHESTRATOR_URL=http://127.0.0.1:4000
+ExecStart=/usr/bin/npx next start -p 3317 -H 127.0.0.1
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target
