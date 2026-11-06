@@ -94,29 +94,43 @@ export async function verifyHeldOrder(intent: OrderIntent, held: HeldRequest, sc
   return res;
 }
 
-const MONEY = /\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)/;
-
-/** Find the order total on a checkout page ("Total $2,340.00" and similar). */
-const MONEY_ALL = /\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)/g;
+// A dollar amount that is not cut short: nothing number-like may follow it.
+const MONEY_ALL = /\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)(?!\d)(?![.,]\d)/g;
 const MONEY_ONLY = /^\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)$/;
+const OTHER_CURRENCY = /[€£¥₹]|\b(EUR|GBP|CAD|AUD|JPY|INR)\b/;
+const NUMBER_LIKE = /\d[\d,.]*\d|\d/g;
 
 /**
- * The amount the budget is checked against: the LARGEST amount on any line of the checkout page
- * that mentions a total ("Subtotal", "Total", "Order total"…), or on the bare-amount line right after
- * a total label. Conservative on purpose: no larger total can hide behind a smaller one. No amount
- * found → null, and the budget check stays unverified for the reviewer.
+ * The amount the budget is checked against, read from the checkout page.
+ *
+ * Every line that mentions a total ("Subtotal", "Total", "Order total"…) counts, and so does a
+ * bare-amount line right after a total label; the LARGEST amount wins, so no larger total can hide
+ * behind a smaller one. Fails closed — returns null, leaving the budget check for the reviewer —
+ * when there is no amount, when a total line shows another currency, or when a total line holds a
+ * number that is not a well-formed dollar amount.
  */
 export function totalFromPage(text: string): number | null {
   const amounts: number[] = [];
   const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-  lines.forEach((line, i) => {
-    if (!/total/i.test(line)) return;
-    const inline = [...line.matchAll(MONEY_ALL)].map((m) => Number(m[1]!.replace(/,/g, "")));
-    if (inline.length) amounts.push(...inline);
-    else {
-      const next = lines[i + 1]?.match(MONEY_ONLY);
-      if (next) amounts.push(Number(next[1]!.replace(/,/g, "")));
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (!/total/i.test(line)) continue;
+    if (OTHER_CURRENCY.test(line)) return null;
+    const inline = [...line.matchAll(MONEY_ALL)];
+    const numbers = line.match(NUMBER_LIKE) ?? [];
+    if (inline.length) {
+      // Any number on a total line that is not part of a well-formed amount makes the line ambiguous.
+      const covered = inline.reduce((n, m) => n + (m[1]!.match(NUMBER_LIKE)?.length ?? 0), 0);
+      if (numbers.length !== covered) return null;
+      amounts.push(...inline.map((m) => Number(m[1]!.replace(/,/g, ""))));
+    } else if (numbers.length) {
+      return null;
+    } else {
+      const next = lines[i + 1];
+      if (next && OTHER_CURRENCY.test(next)) return null;
+      const m = next?.match(MONEY_ONLY);
+      if (m) amounts.push(Number(m[1]!.replace(/,/g, "")));
     }
-  });
+  }
   return amounts.length ? Math.max(...amounts) : null;
 }

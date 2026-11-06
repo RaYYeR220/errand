@@ -17,6 +17,12 @@ describe("totalFromPage", () => {
     expect(totalFromPage("Subtotal $1,000.00\nTotal (incl. freight) $2,999.00")).toBe(2999);
     expect(totalFromPage("Total\nSave $50 on your next order")).toBeNull();
   });
+  it("fails closed on ambiguous total lines", () => {
+    expect(totalFromPage("Total €2.340,00")).toBeNull();
+    expect(totalFromPage("Total $2,340.00 + 12 fees")).toBeNull();
+    expect(totalFromPage("Total 2340")).toBeNull();
+    expect(totalFromPage("Total $2,340.005")).toBeNull();
+  });
   it("returns null when no total is shown", () => {
     expect(totalFromPage("Checkout\nShipping address\nContinue")).toBeNull();
   });
