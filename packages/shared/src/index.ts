@@ -174,7 +174,11 @@ export interface Quote {
   unit_price_usd: number;
   quantity_available: number;
   lead_time_business_days: number;
-  shipping_usd: number;
+  /** Shipping as the page states the rule; the landed-cost step applies it to the ordered quantity. */
+  shipping_per_order_usd: number;
+  shipping_per_unit_usd: number;
+  /** Merchandise subtotal at which shipping becomes free; 0 when there is no such threshold. */
+  free_shipping_threshold_usd: number;
   volume_tiers?: { min_qty: number; unit_price_usd: number }[];
   displays?: string;
   external_4k_displays?: number;

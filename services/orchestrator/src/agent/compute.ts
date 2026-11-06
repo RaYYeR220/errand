@@ -29,7 +29,9 @@ export function referenceCompute(quotes: Quote[], req: Requirements): ComputeRes
     const tier = tiers.find((t) => req.quantity >= t.min_qty);
     const unit = Math.min(q.unit_price_usd, tier?.unit_price_usd ?? Infinity);
     const subtotal = round2(unit * req.quantity);
-    const total = round2(subtotal + (q.shipping_usd || 0));
+    const free = q.free_shipping_threshold_usd > 0 && subtotal >= q.free_shipping_threshold_usd;
+    const shipping = free ? 0 : round2((q.shipping_per_order_usd || 0) + (q.shipping_per_unit_usd || 0) * req.quantity);
+    const total = round2(subtotal + shipping);
     const reasons: string[] = [];
     if (q.quantity_available < req.quantity) reasons.push(`only ${q.quantity_available} in stock`);
     if (q.lead_time_business_days > req.deadline_business_days) reasons.push(`lead time ${q.lead_time_business_days} > ${req.deadline_business_days} business days`);
@@ -43,7 +45,7 @@ export function referenceCompute(quotes: Quote[], req: Requirements): ComputeRes
       reasons,
       unit_price_usd: unit,
       subtotal_usd: subtotal,
-      shipping_usd: q.shipping_usd || 0,
+      shipping_usd: shipping,
       total_usd: total,
       lead_time_business_days: q.lead_time_business_days,
     };
@@ -59,7 +61,8 @@ function round2(n: number) {
 const CODER_SYSTEM = `You write one self-contained Python 3 script (standard library only, no network) for a purchasing team.
 It reads /work/quotes.json (a list of supplier offers) and /work/requirements.json, and writes /work/result.json:
 {"candidates":[{"supplier","product","eligible","reasons":[...],"unit_price_usd","subtotal_usd","shipping_usd","total_usd","lead_time_business_days"}],"winner":<candidate or null>}
-Rules: the unit price for the requested quantity is the lowest of unit_price_usd and any volume tier whose min_qty <= quantity; subtotal = unit price * quantity; total = subtotal + shipping_usd; round money to cents.
+Rules: the unit price for the requested quantity is the lowest of unit_price_usd and any volume tier whose min_qty <= quantity; subtotal = unit price * quantity;
+shipping = 0 if free_shipping_threshold_usd > 0 and subtotal >= free_shipping_threshold_usd, else shipping_per_order_usd + shipping_per_unit_usd * quantity; total = subtotal + shipping; round money to cents.
 A candidate is eligible only if stock >= quantity, lead time <= deadline_business_days, power_delivery_w >= min_power_delivery_w, external_4k_displays >= min_external_4k_displays and total <= budget_usd; list every failed rule in reasons.
 The winner is the eligible candidate with the lowest total. Print a short human-readable comparison table to stdout. Reply with the script only, in one python code block.`;
 

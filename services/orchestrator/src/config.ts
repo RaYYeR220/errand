@@ -29,7 +29,7 @@ export const config = {
     .map((a) => a.trim())
     .filter(Boolean),
   /** Origin of the web app allowed by CORS. */
-  webOrigin: env("WEB_ORIGIN", "http://localhost:3000"),
+  webOrigin: env("WEB_ORIGIN", "http://localhost:3100"),
 
   inference: {
     baseUrl: env("INFERENCE_BASE_URL", "https://api.vultrinference.com/v1"),
