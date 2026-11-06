@@ -61,12 +61,16 @@ export interface OrderIntent {
   supplier: string;
 }
 
-/** Before a held order is released: does what is about to be sent match what was approved? */
-export function verifyHeldOrder(intent: OrderIntent, held: HeldRequest, screenshot: Buffer, pageText: string) {
-  return run(
+/**
+ * Before a held order is released: does what is about to be sent match what was approved?
+ * Money is checked in code (the decisions model is a fast reader, not a calculator);
+ * the model answers the questions that need reading the page and the request.
+ */
+export async function verifyHeldOrder(intent: OrderIntent, held: HeldRequest, screenshot: Buffer, pageText: string, pageTotal: number | null) {
+  const res = await run(
     {
       task: "A purchasing assistant is about to place this order. Compare the checkout page and the outgoing request with the approved intent.",
-      approved_intent: intent,
+      approved_intent: { product: intent.product, quantity: intent.quantity, ship_to: intent.ship_to, po_number: intent.po_number, supplier: intent.supplier },
       outgoing_request: { method: held.method, url: held.url, body: held.body_summary },
       checkout_page_text: pageText.slice(0, 6000),
     },
@@ -74,9 +78,31 @@ export function verifyHeldOrder(intent: OrderIntent, held: HeldRequest, screensh
       item_matches: { instructions: "Is the item being ordered the approved product?" },
       quantity_matches: { instructions: "Is the quantity being ordered exactly the approved quantity?" },
       ship_to_matches: { instructions: "Is the shipping address the approved ship-to address?" },
-      within_budget: { instructions: "Is the order total at or below the approved budget?" },
       po_matches: { instructions: "Does the order carry the approved PO number?" },
     },
     screenshot,
   );
+  const within = pageTotal === null ? null : pageTotal <= intent.budget_usd + 0.005 ? 1 : 0;
+  res.checks.within_budget = {
+    p: within,
+    question:
+      pageTotal === null
+        ? "Order total within budget (no total found on the page)"
+        : `Order total $${pageTotal.toFixed(2)} within budget $${intent.budget_usd.toFixed(2)} (computed, not estimated)`,
+  };
+  res.verdict = verdictFrom(res.checks);
+  return res;
+}
+
+const MONEY = /\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)/;
+
+/** Find the order total on a checkout page ("Total $2,340.00" and similar). */
+export function totalFromPage(text: string): number | null {
+  const found: number[] = [];
+  for (const line of text.split(/\n+/)) {
+    if (!/\btotal\b/i.test(line) || /sub\s*-?total|per unit|\btax\b/i.test(line)) continue;
+    const m = line.match(MONEY);
+    if (m) found.push(Number(m[1]!.replace(/,/g, "")));
+  }
+  return found.length ? Math.max(...found) : null;
 }

@@ -138,7 +138,7 @@ export async function runActor(ctx: ActorContext, session: BrowserSession): Prom
 
     let call;
     try {
-      const res = await chat({ model: config.inference.models.actor, messages, tools: TOOLS, tool_choice: "required", temperature: 0.2, max_tokens: 1200 });
+      const res = await chat({ model: config.inference.models.actor, messages, tools: TOOLS, tool_choice: "required", temperature: 0.2, max_tokens: 2000, reasoning_effort: "low" });
       call = res.message.tool_calls?.[0];
       if (!call) {
         history.push({ step, action: "(no action)", result: "you must call exactly one tool" });

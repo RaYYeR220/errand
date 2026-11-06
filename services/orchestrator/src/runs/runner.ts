@@ -12,7 +12,7 @@ import { resolveSupplier, supplierDefs, type Supplier } from "../suppliers.js";
 import { z } from "zod";
 import { runActor } from "../agent/actor.js";
 import { plan as makePlan, type Plan } from "../agent/plan.js";
-import { verifyQuote, verifyHeldOrder, type OrderIntent } from "../agent/verify.js";
+import { verifyQuote, verifyHeldOrder, totalFromPage, type OrderIntent } from "../agent/verify.js";
 import { computeLandedCost, type ComputeResult } from "../agent/compute.js";
 
 export interface SupplierState {
@@ -360,7 +360,7 @@ async function onHeld(run: Run, session: BrowserSession, held: HeldRequest, inte
   const shot = await session.screenshot({ quality: 80 }).catch(() => Buffer.alloc(0));
   const text = await session.visibleText().catch(() => "");
   order.hold.screenshot = run.saveFrame(`${order.supplier}-held`, shot);
-  const verification = await verifyHeldOrder(intent, held, shot, text);
+  const verification = await verifyHeldOrder(intent, held, shot, text, totalFromPage(text));
   run.holdChecks.set(held.hold_id, verification);
   if (order.hold?.hold_id === held.hold_id) order.hold.verification = verification;
   L.append("verify", `Held order check: ${verification.verdict}`, { verification }, order.supplier);
