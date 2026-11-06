@@ -258,7 +258,11 @@ function HoldCard({ runId, order, token }: { runId: string; order: any; token?: 
             <p className="muted">Checking the held request against the approved intent…</p>
           )}
           <h3>Request body as held</h3>
-          <pre className="body">{JSON.stringify(hold.body_summary, null, 2)}</pre>
+          <pre className="body">
+            {hold.body_summary === null || hold.body_summary === undefined
+              ? "(no body — the supplier places the order from the signed-in cart; nothing in this request carries a credential)"
+              : JSON.stringify(hold.body_summary, null, 2)}
+          </pre>
           <div className="actions">
             <button className="btn primary" disabled={busy || !v || v.verdict === "fail"} onClick={() => act("approve")}>
               Approve and release
@@ -325,7 +329,7 @@ function LedgerPanel({ entries, head, receipt, runId }: { entries: LedgerEntry[]
           <li key={e.seq} className={`k-${e.kind}`}>
             <span className="seq">{e.seq}</span>
             <span className="kind">{e.kind}</span>
-            {e.supplier && <span className="sup">{e.supplier}</span>}
+            <span className="sup">{e.supplier ?? ""}</span>
             <span className="title">{e.title}</span>
           </li>
         ))}
