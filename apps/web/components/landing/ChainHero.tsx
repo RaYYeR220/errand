@@ -294,19 +294,22 @@ export function ChainHero({ children }: { children: React.ReactNode }) {
     cv.addEventListener("mousemove", onMove);
     cv.addEventListener("mouseleave", onLeave);
     hero.addEventListener("click", onClick);
-    addEventListener("resize", layout);
-    layout();
-    document.fonts?.ready.then(() => layout());
-    if (reduce) {
-      t0 -= (SEAL + 3) * 1000;
-      frame(performance.now());
-    } else raf = requestAnimationFrame(frame);
+    // Without motion, the chain is drawn once in its sealed state, and again whenever the layout changes.
+    const relayout = () => {
+      layout();
+      if (reduce) frame(performance.now());
+    };
+    addEventListener("resize", relayout);
+    if (reduce) t0 -= (SEAL + 3) * 1000;
+    relayout();
+    document.fonts?.ready.then(relayout);
+    if (!reduce) raf = requestAnimationFrame(frame);
     return () => {
       cancelAnimationFrame(raf);
       cv.removeEventListener("mousemove", onMove);
       cv.removeEventListener("mouseleave", onLeave);
       hero.removeEventListener("click", onClick);
-      removeEventListener("resize", layout);
+      removeEventListener("resize", relayout);
     };
   }, [data]);
 
