@@ -97,24 +97,26 @@ export async function verifyHeldOrder(intent: OrderIntent, held: HeldRequest, sc
 const MONEY = /\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)/;
 
 /** Find the order total on a checkout page ("Total $2,340.00" and similar). */
-const NOT_ORDER_TOTAL = /sub\s*-?total|per unit|\btax\b|\beach\b|saving|discount/i;
-const TOTAL_LABEL_ONLY = /^(order\s+|grand\s+)?total:?$/i;
+const MONEY_ALL = /\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)/g;
 const MONEY_ONLY = /^\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)$/;
 
 /**
- * Find the order total on a checkout page ("Total $2,340.00", or "Total" followed by "$2,340.00").
- * Fails closed: when the page shows conflicting totals, or none, the answer is null and the budget
- * check stays unverified for the reviewer.
+ * The amount the budget is checked against: the LARGEST amount on any line of the checkout page
+ * that mentions a total ("Subtotal", "Total", "Order total"…), or on the bare-amount line right after
+ * a total label. Conservative on purpose: no larger total can hide behind a smaller one. No amount
+ * found → null, and the budget check stays unverified for the reviewer.
  */
 export function totalFromPage(text: string): number | null {
-  const found = new Set<number>();
+  const amounts: number[] = [];
   const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
   lines.forEach((line, i) => {
-    if (!/\btotal\b/i.test(line) || NOT_ORDER_TOTAL.test(line)) return;
-    const same = line.match(MONEY);
-    const next = lines[i + 1];
-    const m = same ?? (TOTAL_LABEL_ONLY.test(line) && next ? next.match(MONEY_ONLY) : null);
-    if (m) found.add(Number(m[1]!.replace(/,/g, "")));
+    if (!/total/i.test(line)) return;
+    const inline = [...line.matchAll(MONEY_ALL)].map((m) => Number(m[1]!.replace(/,/g, "")));
+    if (inline.length) amounts.push(...inline);
+    else {
+      const next = lines[i + 1]?.match(MONEY_ONLY);
+      if (next) amounts.push(Number(next[1]!.replace(/,/g, "")));
+    }
   });
-  return found.size === 1 ? [...found][0]! : null;
+  return amounts.length ? Math.max(...amounts) : null;
 }
