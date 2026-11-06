@@ -20,5 +20,5 @@ runcmd:
   - apt-get update && apt-get install -y caddy
   # Microsandbox needs /dev/kvm (VX1 exposes nested virtualization)
   - usermod -aG kvm errand
-  - su - errand -c "git clone https://github.com/RaYYeR220/errand.git ~/errand && cd ~/errand && pnpm install --frozen-lockfile && pnpm -r build"
-  - su - errand -c "cd ~/errand/services/orchestrator && npx msb doctor || true"
+  - mkdir -p /opt/errand && chown errand:errand /opt/errand
+  - touch /var/lib/cloud/instance/errand-ready

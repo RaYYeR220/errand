@@ -4,4 +4,5 @@ package_update: true
 packages: [git, curl, ca-certificates, jq]
 runcmd:
   - curl -fsSL https://get.docker.com | sh
-  - git clone https://github.com/RaYYeR220/errand.git /opt/errand
+  - mkdir -p /opt/errand
+  - touch /var/lib/cloud/instance/errand-ready

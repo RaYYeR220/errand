@@ -42,6 +42,9 @@ async function sshKeyId() {
 }
 
 async function firewall() {
+  const existing = await vultr<{ firewall_groups: { id: string; description: string }[] }>("GET", "/firewalls?per_page=100");
+  const found = existing.firewall_groups.find((g) => g.description === "errand-web");
+  if (found) return found.id;
   const { firewall_group } = await vultr("POST", "/firewalls", { description: "errand-web" });
   for (const port of ["22", "80", "443"]) {
     for (const ip_type of ["v4", "v6"]) {
@@ -57,7 +60,7 @@ const fw = await firewall();
 
 const control = await vultr("POST", "/instances", {
   region,
-  plan: process.env.CONTROL_PLAN ?? "vx1-g-2c-8g",
+  plan: process.env.CONTROL_PLAN ?? "vx1-g-2c-8g-120s",
   os_id: ubuntu,
   label: "errand-control",
   hostname: "errand-control",
