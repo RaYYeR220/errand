@@ -22,7 +22,20 @@ const STATUS_LABEL: Record<string, string> = {
 export function RunView({ id }: { id: string }) {
   const { state, entries, connected } = useRun(id);
   const [token, setToken] = useState<string | undefined>();
+  const [queuePos, setQueuePos] = useState(0);
   useEffect(() => setToken(reviewTokenFor(id)), [id]);
+  const queued = state?.status === "queued";
+  useEffect(() => {
+    if (!queued) return;
+    const tick = () =>
+      fetch(`/api/runs/${id}`)
+        .then((r) => r.json())
+        .then((s) => setQueuePos(Number(s.queue_position) || 0))
+        .catch(() => {});
+    tick();
+    const t = setInterval(tick, 4000);
+    return () => clearInterval(t);
+  }, [id, queued]);
 
   if (!state) {
     return <div className="run-empty">Connecting to errand {id}…</div>;
@@ -41,9 +54,13 @@ export function RunView({ id }: { id: string }) {
         <div className={`run-status s-${state.status}`}>
           <span className="dot" aria-hidden />
           {STATUS_LABEL[state.status] ?? state.status}
+          {queued && queuePos > 0 && <span className="muted"> · {queuePos === 1 ? "next up" : `position ${queuePos}`} (one errand runs at a time, about 5 minutes each)</span>}
           {!connected && <span className="muted"> · reconnecting</span>}
         </div>
       </header>
+      {token && !["completed", "rejected", "failed"].includes(state.status) && (
+        <p className="reviewer-note">You are the reviewer of this errand. When the order is held, it waits for your decision.</p>
+      )}
 
       {state.order?.hold && state.order.status === "held" && (
         <HoldCard runId={state.id} order={state.order} token={token} />
