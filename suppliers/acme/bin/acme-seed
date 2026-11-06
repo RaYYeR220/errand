@@ -1,0 +1,4 @@
+#!/bin/sh
+# Installs (first run) and seeds the Acme store. Safe to run repeatedly.
+set -eu
+exec /usr/local/share/acme/seed.sh "$@"

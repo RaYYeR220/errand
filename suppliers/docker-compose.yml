@@ -1,0 +1,162 @@
+# Supplier demo world: Northwind Supply (Medusa v2 B2B) and Acme Office & Tech
+# (WooCommerce), behind one Caddy edge. All public URLs derive from
+# PUBLIC_SCHEME and BASE_DOMAIN in .env.
+#
+#   scripts/init-env.sh        # once: create .env with random secrets
+#   docker compose up -d --build
+#   scripts/seed.sh            # idempotent catalog, buyer accounts, pricing
+
+name: suppliers
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # --- Northwind Supply (Medusa v2, B2B starter) ------------------------------
+  northwind-db:
+    image: postgres:16.15-alpine
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_USER: northwind
+      POSTGRES_PASSWORD: ${NORTHWIND_DB_PASSWORD:?run scripts/init-env.sh}
+      POSTGRES_DB: northwind
+    volumes:
+      - northwind-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U northwind -d northwind"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  northwind-backend:
+    build: ./northwind/backend
+    image: suppliers/northwind-backend:local
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      northwind-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://northwind:${NORTHWIND_DB_PASSWORD}@northwind-db:5432/northwind
+      STORE_CORS: ${PUBLIC_SCHEME:-https}://northwind.${BASE_DOMAIN:?set BASE_DOMAIN}
+      ADMIN_CORS: ${PUBLIC_SCHEME:-https}://api.northwind.${BASE_DOMAIN}
+      AUTH_CORS: ${PUBLIC_SCHEME:-https}://northwind.${BASE_DOMAIN},${PUBLIC_SCHEME:-https}://api.northwind.${BASE_DOMAIN}
+      JWT_SECRET: ${NORTHWIND_JWT_SECRET:?run scripts/init-env.sh}
+      COOKIE_SECRET: ${NORTHWIND_COOKIE_SECRET:?run scripts/init-env.sh}
+      CATALOG_PATH: /catalog/catalog.json
+      NORTHWIND_PUBLISHABLE_KEY: ${NORTHWIND_PUBLISHABLE_KEY:?run scripts/init-env.sh}
+      NORTHWIND_ADMIN_EMAIL: ${NORTHWIND_ADMIN_EMAIL}
+      NORTHWIND_ADMIN_PASSWORD: ${NORTHWIND_ADMIN_PASSWORD:?run scripts/init-env.sh}
+      NORTHWIND_BUYER_EMAIL: ${NORTHWIND_BUYER_EMAIL}
+      NORTHWIND_BUYER_PASSWORD: ${NORTHWIND_BUYER_PASSWORD:?run scripts/init-env.sh}
+    volumes:
+      - ./catalog:/catalog:ro
+    ports:
+      - "127.0.0.1:${NORTHWIND_API_PORT:-9100}:9000"
+
+  northwind-storefront:
+    build: ./northwind/storefront
+    image: suppliers/northwind-storefront:local
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      northwind-backend:
+        condition: service_healthy
+    environment:
+      MEDUSA_BACKEND_URL: http://northwind-backend:9000
+      MEDUSA_PUBLISHABLE_KEY: ${NORTHWIND_PUBLISHABLE_KEY}
+      BASE_URL: ${PUBLIC_SCHEME:-https}://northwind.${BASE_DOMAIN}
+      DEFAULT_REGION: us
+    ports:
+      - "127.0.0.1:${NORTHWIND_STOREFRONT_PORT:-8100}:8000"
+
+  # --- Acme Office & Tech (WordPress + WooCommerce) ---------------------------
+  acme-db:
+    image: mysql:8.4.13
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      MYSQL_DATABASE: acme
+      MYSQL_USER: acme
+      MYSQL_PASSWORD: ${ACME_DB_PASSWORD:?run scripts/init-env.sh}
+      MYSQL_ROOT_PASSWORD: ${ACME_DB_ROOT_PASSWORD:?run scripts/init-env.sh}
+    volumes:
+      - acme-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  acme:
+    build: ./acme
+    image: suppliers/acme:local
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      acme-db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: acme-db
+      WORDPRESS_DB_NAME: acme
+      WORDPRESS_DB_USER: acme
+      WORDPRESS_DB_PASSWORD: ${ACME_DB_PASSWORD}
+      WORDPRESS_AUTH_KEY: ${ACME_WP_SECRET:?run scripts/init-env.sh}-auth
+      WORDPRESS_SECURE_AUTH_KEY: ${ACME_WP_SECRET}-secure-auth
+      WORDPRESS_LOGGED_IN_KEY: ${ACME_WP_SECRET}-logged-in
+      WORDPRESS_NONCE_KEY: ${ACME_WP_SECRET}-nonce
+      WORDPRESS_AUTH_SALT: ${ACME_WP_SECRET}-auth-salt
+      WORDPRESS_SECURE_AUTH_SALT: ${ACME_WP_SECRET}-secure-auth-salt
+      WORDPRESS_LOGGED_IN_SALT: ${ACME_WP_SECRET}-logged-in-salt
+      WORDPRESS_NONCE_SALT: ${ACME_WP_SECRET}-nonce-salt
+      ACME_PUBLIC_URL: ${PUBLIC_SCHEME:-https}://acme.${BASE_DOMAIN}
+      ACME_ADMIN_USER: ${ACME_ADMIN_USER:-acme-admin}
+      ACME_ADMIN_EMAIL: ${ACME_ADMIN_EMAIL}
+      ACME_ADMIN_PASSWORD: ${ACME_ADMIN_PASSWORD:?run scripts/init-env.sh}
+      ACME_BUYER_USERNAME: ${ACME_BUYER_USERNAME:-lumenlabs-buyer}
+      ACME_BUYER_EMAIL: ${ACME_BUYER_EMAIL}
+      ACME_BUYER_PASSWORD: ${ACME_BUYER_PASSWORD:?run scripts/init-env.sh}
+      CATALOG_PATH: /catalog/catalog.json
+    volumes:
+      - acme-uploads:/var/www/html/wp-content/uploads
+      - ./catalog:/catalog:ro
+    ports:
+      - "127.0.0.1:${ACME_PORT:-8200}:80"
+
+  # --- Globex: reserved slot, see globex/README.md ----------------------------
+
+  # --- Edge ------------------------------------------------------------------
+  # Terminates TLS for every supplier hostname. Disable with COMPOSE_PROFILES=
+  # when another reverse proxy on the host already owns ports 80/443; the
+  # services above are also published on 127.0.0.1 for that case.
+  edge:
+    image: caddy:2.11.9-alpine
+    profiles: ["edge"]
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      - northwind-storefront
+      - acme
+    environment:
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      PUBLIC_SCHEME: ${PUBLIC_SCHEME:-https}
+      CADDY_GLOBAL_OPTIONS: ${CADDY_GLOBAL_OPTIONS:-}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./edge/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  northwind-db:
+  acme-db:
+  acme-uploads:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,26 @@
+# Edge proxy for the supplier hostnames. Caddy forwards Host and sets
+# X-Forwarded-For/-Proto/-Host for the upstreams. Values come from the environment:
+#   PUBLIC_SCHEME         https (default) or http
+#   BASE_DOMAIN           e.g. 203.0.113.7.sslip.io, or localtest.me locally
+#   CADDY_GLOBAL_OPTIONS  e.g. "local_certs" for a local CA, or
+#                         "email ops@example.com" for Let's Encrypt
+{
+	{$CADDY_GLOBAL_OPTIONS}
+}
+
+{$PUBLIC_SCHEME}://northwind.{$BASE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy northwind-storefront:8000
+}
+
+{$PUBLIC_SCHEME}://api.northwind.{$BASE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy northwind-backend:9000
+}
+
+{$PUBLIC_SCHEME}://acme.{$BASE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy acme:80
+}
+
+# globex.{$BASE_DOMAIN} is reserved for the third supplier (see globex/README.md).

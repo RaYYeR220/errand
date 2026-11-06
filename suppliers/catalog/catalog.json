@@ -1,0 +1,137 @@
+{
+  "currency": "usd",
+  "buyer": {
+    "company": "Lumen Labs",
+    "contact": { "first_name": "Dana", "last_name": "Okafor", "phone": "+1 510 555 0142" },
+    "company_email": "procurement@lumenlabs.example",
+    "address": {
+      "company": "Lumen Labs",
+      "address_1": "1450 Harbor Way",
+      "address_2": "Suite 300",
+      "city": "Oakland",
+      "province": "CA",
+      "postal_code": "94607",
+      "country_code": "us"
+    }
+  },
+  "products": [
+    {
+      "key": "caldigit-ts4",
+      "title": "CalDigit TS4 Thunderbolt 4 Dock",
+      "brand": "CalDigit",
+      "mpn": "TS4",
+      "summary": "18-port Thunderbolt 4 workstation dock with 98 W host charging and 2.5 GbE.",
+      "specs": {
+        "host_connection": "Thunderbolt 4 / USB4 (40 Gb/s); works with Thunderbolt 3 and USB-C hosts",
+        "external_displays": 2,
+        "dual_display_max": "2 × 4K @ 60 Hz (Windows, Intel Mac); 2 × 6K @ 60 Hz on Apple M1 Pro/Max and later",
+        "single_display_max": "8K @ 60 Hz (DSC host required)",
+        "power_delivery_w": 98,
+        "power_delivery_note": "98 W sustained to the host; 230 W power supply included",
+        "ports": "3 × Thunderbolt 4 (1 host, 2 downstream), 3 × USB-C 10 Gb/s, 5 × USB-A 10 Gb/s, 1 × DisplayPort 1.4, SD 4.0 UHS-II, microSD 4.0 UHS-II, 2.5 GbE, front audio combo, rear audio in, rear audio out"
+      }
+    },
+    {
+      "key": "dell-wd19s-130w",
+      "title": "Dell WD19S 130W USB-C Dock",
+      "brand": "Dell",
+      "mpn": "210-AZBG",
+      "summary": "USB-C business dock with three video outputs and 90 W power delivery to any USB-C PD laptop.",
+      "specs": {
+        "host_connection": "USB-C (USB 3.2 Gen 2, DisplayPort 1.4 Alt Mode)",
+        "external_displays": 3,
+        "dual_display_max": "2 × 4K @ 60 Hz (HBR3 host with DSC)",
+        "single_display_max": "4K @ 60 Hz (HBR3 host with DSC)",
+        "power_delivery_w": 90,
+        "power_delivery_note": "90 W to Dell and non-Dell USB-C PD laptops with the included 130 W adapter",
+        "ports": "2 × DisplayPort 1.4, 1 × HDMI 2.0, 1 × USB-C 3.2 Gen 2 with DisplayPort 1.4, 1 × USB-C 3.2 Gen 2, 3 × USB-A 3.2 Gen 1 (1 with PowerShare), Gigabit Ethernet"
+      }
+    },
+    {
+      "key": "lenovo-thinkpad-universal-usb-c-dock",
+      "title": "Lenovo ThinkPad Universal USB-C Dock (40AY)",
+      "brand": "Lenovo",
+      "mpn": "40AY0090US",
+      "summary": "Universal USB-C dock with dual DisplayPort 1.4 and HDMI 2.0 for mixed laptop fleets.",
+      "specs": {
+        "host_connection": "USB-C (USB 3.1 Gen 2, DisplayPort Alt Mode)",
+        "external_displays": 3,
+        "dual_display_max": "2 × 4K @ 60 Hz",
+        "single_display_max": "4K @ 60 Hz",
+        "power_delivery_w": 65,
+        "power_delivery_note": "65 W with the included 90 W adapter; up to 100 W only with the optional 135 W adapter (4X20E50558, sold separately)",
+        "ports": "2 × DisplayPort 1.4, 1 × HDMI 2.0, 3 × USB-A 3.1 Gen 2 (1 always-on), 2 × USB-A 2.0, 1 × USB-C 10 Gb/s, Gigabit Ethernet, 3.5 mm audio combo"
+      }
+    },
+    {
+      "key": "anker-563-usb-c-dock-10-in-1",
+      "title": "Anker 563 USB-C Docking Station (10-in-1)",
+      "brand": "Anker",
+      "mpn": "A8395",
+      "summary": "Compact DisplayLink dock with triple-display output and 100 W laptop charging.",
+      "specs": {
+        "host_connection": "USB-C (DisplayPort Alt Mode + DisplayLink; driver required for the 2K outputs)",
+        "external_displays": 3,
+        "dual_display_max": "4K @ 30 Hz + 2K @ 60 Hz (no dual 4K)",
+        "single_display_max": "4K @ 30 Hz (HDMI 1)",
+        "power_delivery_w": 100,
+        "power_delivery_note": "Up to 100 W to the host; 180 W power adapter included",
+        "ports": "1 × HDMI (4K @ 30 Hz), 1 × HDMI (2K), 1 × DisplayPort (2K), 1 × USB-C 5 Gb/s (30 W), 1 × USB-A 5 Gb/s, 2 × USB-A 2.0, Gigabit Ethernet, 3.5 mm audio"
+      }
+    },
+    {
+      "key": "plugable-ud-ultc4k",
+      "title": "Plugable UD-ULTC4K Triple 4K Display Dock",
+      "brand": "Plugable",
+      "mpn": "UD-ULTC4K",
+      "summary": "Triple 4K 60 Hz USB-C dock (DisplayLink + Alt Mode) with 100 W charging.",
+      "specs": {
+        "host_connection": "USB-C 10 Gb/s, Thunderbolt or USB4 (DisplayLink driver required)",
+        "external_displays": 3,
+        "dual_display_max": "2 × 4K @ 60 Hz (3 × 4K @ 60 Hz with DP 1.4 Alt Mode hosts)",
+        "single_display_max": "4K @ 60 Hz",
+        "power_delivery_w": 100,
+        "power_delivery_note": "Up to 100 W to the host (96 W certified); 135 W power supply included",
+        "ports": "3 × video outputs (each HDMI 2.0 or DisplayPort 1.2), 4 × USB-A 5 Gb/s, 1 × USB-C 10 Gb/s (20 W), SD card reader, audio in, audio out, Gigabit Ethernet"
+      }
+    }
+  ],
+  "suppliers": {
+    "northwind": {
+      "name": "Northwind Supply",
+      "warehouse": "Columbus, OH distribution center",
+      "shipping": {
+        "label": "Standard freight",
+        "description": "Ground freight, tracked. Lead time on each product page includes transit.",
+        "type": "per_order",
+        "rate": 49.0,
+        "free_threshold": 2000.0
+      },
+      "offers": {
+        "caldigit-ts4": { "sku": "NW-CDG-TS4", "list_price": 399.99, "contract_price": 335.0, "tiers": [{ "min_qty": 10, "price": 319.0 }], "stock": 26, "lead_time_days": 2 },
+        "dell-wd19s-130w": { "sku": "NW-DEL-WD19S-130", "list_price": 289.99, "contract_price": 209.0, "tiers": [{ "min_qty": 10, "price": 195.0 }], "stock": 48, "lead_time_days": 2 },
+        "lenovo-thinkpad-universal-usb-c-dock": { "sku": "NW-LEN-40AY0090US", "list_price": 269.99, "contract_price": 169.0, "tiers": [{ "min_qty": 10, "price": 159.0 }], "stock": 14, "lead_time_days": 5 },
+        "anker-563-usb-c-dock-10-in-1": { "sku": "NW-ANK-A8395", "list_price": 219.99, "contract_price": 139.0, "tiers": [{ "min_qty": 10, "price": 129.0 }], "stock": 60, "lead_time_days": 1 },
+        "plugable-ud-ultc4k": { "sku": "NW-PLG-UDULTC4K", "list_price": 279.99, "contract_price": 199.0, "tiers": [{ "min_qty": 10, "price": 192.0 }], "stock": 31, "lead_time_days": 4 }
+      }
+    },
+    "acme": {
+      "name": "Acme Office & Tech",
+      "warehouse": "Reno, NV fulfillment center",
+      "shipping": {
+        "label": "Ground freight",
+        "description": "Charged per unit. Lead time on each product page includes transit.",
+        "type": "per_unit",
+        "rate": 12.5,
+        "free_threshold": 3000.0
+      },
+      "offers": {
+        "caldigit-ts4": { "sku": "AC-TS4-CALDIGIT", "list_price": 389.99, "contract_price": 339.0, "tiers": [{ "min_qty": 10, "price": 325.0 }], "stock": 18, "lead_time_days": 3 },
+        "dell-wd19s-130w": { "sku": "AC-WD19S-130W", "list_price": 279.99, "contract_price": 199.0, "tiers": [{ "min_qty": 10, "price": 189.0 }], "stock": 35, "lead_time_days": 1 },
+        "lenovo-thinkpad-universal-usb-c-dock": { "sku": "AC-40AY0090US", "list_price": 259.99, "contract_price": 165.0, "tiers": [{ "min_qty": 10, "price": 158.0 }], "stock": 9, "lead_time_days": 7 },
+        "anker-563-usb-c-dock-10-in-1": { "sku": "AC-A8395-ANKER563", "list_price": 209.99, "contract_price": 129.0, "tiers": [{ "min_qty": 10, "price": 121.0 }], "stock": 75, "lead_time_days": 2 },
+        "plugable-ud-ultc4k": { "sku": "AC-UD-ULTC4K", "list_price": 269.99, "contract_price": 185.0, "tiers": [{ "min_qty": 10, "price": 179.0 }], "stock": 22, "lead_time_days": 6 }
+      }
+    }
+  }
+}
