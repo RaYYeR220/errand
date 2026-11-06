@@ -22,6 +22,9 @@ describe("totalFromPage", () => {
     expect(totalFromPage("Total $2,340.00 + 12 fees")).toBeNull();
     expect(totalFromPage("Total 2340")).toBeNull();
     expect(totalFromPage("Total $2,340.005")).toBeNull();
+    expect(totalFromPage("Total $2.3K")).toBeNull();
+    expect(totalFromPage("Total items: 12")).toBeNull();
+    expect(totalFromPage("Total\n$2,340.00 (estimated)")).toBeNull();
   });
   it("returns null when no total is shown", () => {
     expect(totalFromPage("Checkout\nShipping address\nContinue")).toBeNull();
