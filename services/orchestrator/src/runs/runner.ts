@@ -170,7 +170,14 @@ async function execute(run: Run) {
     deadline_business_days: req.deadline_business_days,
     ship_to: req.ship_to,
   });
-  L.append("plan", "Requirements extracted", { model, requirements: plan.requirements, selection_rule: plan.selection_rule });
+  // The validated request is authoritative for anything that moves money or goods; the planner only adds spec requirements.
+  const extracted = { ...plan.requirements };
+  plan.requirements.quantity = req.quantity;
+  plan.requirements.budget_usd = req.budget_usd;
+  plan.requirements.deadline_business_days = req.deadline_business_days;
+  plan.requirements.ship_to = req.ship_to;
+  const overridden = (["quantity", "budget_usd", "deadline_business_days", "ship_to"] as const).filter((k) => extracted[k] !== plan.requirements[k]);
+  L.append("plan", "Requirements extracted", { model, requirements: plan.requirements, selection_rule: plan.selection_rule, ...(overridden.length ? { overridden_by_request: overridden } : {}) });
   run.update({ plan, plan_model: model });
 
   // 2. Visit every supplier in parallel, each in its own microVM.

@@ -3,11 +3,12 @@
 package_update: true
 packages: [git, curl, ca-certificates, debian-keyring, debian-archive-keyring, apt-transport-https, jq]
 users:
+  - default
+  # Unprivileged service account: KVM access for microVMs, nothing else. Operations use the default admin user.
   - name: errand
-    groups: [kvm, sudo]
+    groups: [kvm]
     shell: /bin/bash
-    sudo: "ALL=(ALL) NOPASSWD:ALL"
-    ssh_authorized_keys: []
+    lock_passwd: true
 runcmd:
   # Node 24 + pnpm
   - curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
