@@ -1,8 +1,8 @@
 import { EventEmitter } from "node:events";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import type { ErrandRequest, Quote, RunStatus, SandboxIsolation, VerifyResult } from "@errand/shared";
+import type { ErrandRequest, LedgerEntry, Quote, RunStatus, SandboxIsolation, VerifyResult } from "@errand/shared";
 import { config } from "../config.js";
 import { Ledger } from "./ledger.js";
 import { BrowserSession } from "../browser/session.js";
@@ -68,11 +68,11 @@ export class Run extends EventEmitter {
   readonly abort = new AbortController();
   hold?: OrderHold;
 
-  constructor(readonly state: RunState) {
+  constructor(readonly state: RunState, restored?: LedgerEntry[]) {
     super();
     this.dir = path.join(config.dataDir, "runs", state.id);
     mkdirSync(path.join(this.dir, "frames"), { recursive: true });
-    this.ledger = new Ledger(state.id, this.dir);
+    this.ledger = new Ledger(state.id, this.dir, restored);
     this.ledger.on("entry", (e) => {
       this.state.ledger_head = e.hash;
       this.emit("entry", e);
@@ -95,6 +95,33 @@ export class Run extends EventEmitter {
 export const runs = new Map<string, Run>();
 const queue: Run[] = [];
 let active = 0;
+
+/** Reload finished errands from disk after a restart; anything mid-flight is marked as interrupted. */
+export function restoreRuns() {
+  const root = path.join(config.dataDir, "runs");
+  if (!existsSync(root)) return 0;
+  let n = 0;
+  for (const id of readdirSync(root)) {
+    const dir = path.join(root, id);
+    const stateFile = path.join(dir, "state.json");
+    const ledgerFile = path.join(dir, "ledger.jsonl");
+    if (!existsSync(stateFile) || !existsSync(ledgerFile) || runs.has(id)) continue;
+    try {
+      const state = JSON.parse(readFileSync(stateFile, "utf8")) as RunState;
+      const entries = readFileSync(ledgerFile, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as LedgerEntry);
+      const run = new Run(state, entries);
+      if (!["completed", "rejected", "failed"].includes(state.status)) {
+        run.state.status = "failed";
+        run.state.error = run.state.error ?? "interrupted by a restart";
+      }
+      runs.set(id, run);
+      n++;
+    } catch {
+      /* unreadable run directory: skip it */
+    }
+  }
+  return n;
+}
 
 export function newRunId() {
   const t = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);

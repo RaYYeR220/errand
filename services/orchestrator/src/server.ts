@@ -5,7 +5,8 @@ import path from "node:path";
 import { z } from "zod";
 import { config } from "./config.js";
 import { timingSafeEqual } from "node:crypto";
-import { enqueue, runs, decideHold, queuePosition, checkReviewToken, ErrandInput } from "./runs/runner.js";
+import { enqueue, runs, decideHold, queuePosition, checkReviewToken, ErrandInput, restoreRuns } from "./runs/runner.js";
+import { showcase } from "./showcase.js";
 import { verifyChain } from "./runs/ledger.js";
 import { supplierDefs } from "./suppliers.js";
 import * as sandboxes from "./sandbox/microsandbox.js";
@@ -46,6 +47,11 @@ function hasRunToken(header: string | undefined): boolean {
 }
 
 app.get("/api/company", async () => ({ addresses: config.companyAddresses, demo_mode: !config.runToken }));
+
+app.get("/api/showcase", async (_req, reply) => {
+  const s = showcase();
+  return s ?? reply.code(404).send({ error: "no completed errand yet" });
+});
 
 app.post("/api/runs", async (req, reply) => {
   if (!hasRunToken(req.headers.authorization) && !isAdmin(req.headers.authorization)) {
@@ -145,6 +151,7 @@ app.post<{ Params: { id: string; holdId: string } }>("/api/runs/:id/holds/:holdI
 });
 
 registerMcp(app);
+app.log.info({ restored: restoreRuns() }, "restored errands from disk");
 
 const shutdown = async () => {
   await sandboxes.destroyAll();

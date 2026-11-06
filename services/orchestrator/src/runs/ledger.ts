@@ -41,11 +41,17 @@ export class Ledger extends EventEmitter {
   private prev = GENESIS;
   private readonly file: string;
 
-  constructor(readonly runId: string, readonly dir: string) {
+  constructor(readonly runId: string, readonly dir: string, existing?: LedgerEntry[]) {
     super();
     mkdirSync(dir, { recursive: true });
     this.file = path.join(dir, "ledger.jsonl");
-    writeFileSync(this.file, "");
+    if (existing) {
+      // Restored from disk: keep the file as written, continue the chain from its head.
+      this.entries.push(...existing);
+      this.prev = existing.at(-1)?.hash ?? GENESIS;
+    } else {
+      writeFileSync(this.file, "");
+    }
   }
 
   append(kind: LedgerKind, title: string, data?: Record<string, unknown>, supplier?: string): LedgerEntry {
