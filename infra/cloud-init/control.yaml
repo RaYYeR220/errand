@@ -1,0 +1,23 @@
+#cloud-config
+# Errand control host (Vultr VX1): web app, orchestrator, Microsandbox microVMs.
+package_update: true
+packages: [git, curl, ca-certificates, debian-keyring, debian-archive-keyring, apt-transport-https, jq]
+users:
+  - name: errand
+    groups: [kvm, sudo]
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys: []
+runcmd:
+  # Node 24 + pnpm
+  - curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+  - apt-get install -y nodejs
+  - npm install -g pnpm@9.15.0
+  # Caddy for TLS in front of the web app and the API
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' -o /etc/apt/sources.list.d/caddy-stable.list
+  - apt-get update && apt-get install -y caddy
+  # Microsandbox needs /dev/kvm (VX1 exposes nested virtualization)
+  - usermod -aG kvm errand
+  - su - errand -c "git clone https://github.com/RaYYeR220/errand.git ~/errand && cd ~/errand && pnpm install --frozen-lockfile && pnpm -r build"
+  - su - errand -c "cd ~/errand/services/orchestrator && npx msb doctor || true"

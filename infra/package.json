@@ -1,0 +1,5 @@
+{
+  "name": "@errand/infra",
+  "private": true,
+  "type": "module"
+}

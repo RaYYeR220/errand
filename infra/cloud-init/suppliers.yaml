@@ -1,0 +1,7 @@
+#cloud-config
+# Errand supplier network host: the demo suppliers' storefronts (Docker).
+package_update: true
+packages: [git, curl, ca-certificates, jq]
+runcmd:
+  - curl -fsSL https://get.docker.com | sh
+  - git clone https://github.com/RaYYeR220/errand.git /opt/errand
