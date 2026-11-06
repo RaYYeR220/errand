@@ -11,10 +11,19 @@
         "password_env": "NORTHWIND_BUYER_PASSWORD"
       },
       "order_request": [
-        { "method": "POST", "path_regex": "^/api/checkout/place-order$" }
+        {
+          "method": "POST",
+          "path_regex": "^/api/checkout/place-order$"
+        }
       ],
       "js_readable_cookies": [],
-      "asset_hosts": []
+      "asset_hosts": [],
+      "safe_requests": [
+        "/us/checkout(\\?step=[a-z-]+)?",
+        "/us/cart",
+        "/us/account(\\?.*)?",
+        "/us/products/[a-z0-9-]+"
+      ]
     },
     {
       "id": "acme",
@@ -27,11 +36,28 @@
         "password_env": "ACME_BUYER_PASSWORD"
       },
       "order_request": [
-        { "method": "POST", "path_regex": "^/\\?wc-ajax=checkout(&.*)?$" },
-        { "method": "POST", "path_regex": "^/checkout/?(\\?.*)?$" }
+        {
+          "method": "POST",
+          "path_regex": "^/\\?wc-ajax=checkout(&.*)?$"
+        },
+        {
+          "method": "POST",
+          "path_regex": "^/checkout/?(\\?.*)?$"
+        }
       ],
-      "js_readable_cookies": ["woocommerce_items_in_cart", "woocommerce_cart_hash"],
-      "asset_hosts": []
+      "js_readable_cookies": [
+        "woocommerce_items_in_cart",
+        "woocommerce_cart_hash"
+      ],
+      "asset_hosts": [],
+      "safe_requests": [
+        "/[?]wc-ajax=update_order_review",
+        "/[?]wc-ajax=get_refreshed_fragments",
+        "/[?]wc-ajax=add_to_cart",
+        "/[?]wc-ajax=update_shipping_method",
+        "/cart",
+        "/my-account"
+      ]
     }
   ]
 }

@@ -48,3 +48,18 @@ describe("OrderHold normalization and catch-all", () => {
     expect(h.match(fakeReq("POST", "https://acme.example.test/%E0%A4%A/checkout"))?.id).toBe("catch-all");
   });
 });
+
+describe("Medusa checkout steps vs the order endpoint", () => {
+  const h = new OrderHold({} as any, [
+    { id: "nw", label: "Place order", host: "northwind.example.test", method: "POST", pathRegex: "^/api/checkout/place-order$" },
+  ], () => {}, () => {}, 1000, { host: "northwind.example.test", safe: ["/us/checkout([?]step=[a-z-]+)?", "/us/cart"] });
+  it("releases the intermediate checkout steps", () => {
+    for (const step of ["shipping-address", "billing-address", "delivery", "payment", "review"]) {
+      expect(h.match(fakeReq("POST", `https://northwind.example.test/us/checkout?step=${step}`))).toBeUndefined();
+    }
+  });
+  it("holds the order endpoint and unknown order-like endpoints", () => {
+    expect(h.match(fakeReq("POST", "https://northwind.example.test/api/checkout/place-order"))?.id).toBe("nw");
+    expect(h.match(fakeReq("POST", "https://northwind.example.test/store/carts/c1/complete"))?.id).toBe("catch-all");
+  });
+});
