@@ -9,6 +9,7 @@ import { enqueue, runs, decideHold, queuePosition, checkReviewToken } from "./ru
 import { verifyChain } from "./runs/ledger.js";
 import { supplierDefs } from "./suppliers.js";
 import * as sandboxes from "./sandbox/microsandbox.js";
+import { registerMcp } from "./mcp.js";
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" }, bodyLimit: 2 * 1024 * 1024 });
 await app.register(cors, { origin: [config.webOrigin] });
@@ -140,6 +141,8 @@ app.post<{ Params: { id: string; holdId: string } }>("/api/runs/:id/holds/:holdI
   if (!ok) return reply.code(409).send({ error: "no pending hold with that id" });
   return { ok: true };
 });
+
+registerMcp(app);
 
 const shutdown = async () => {
   await sandboxes.destroyAll();
