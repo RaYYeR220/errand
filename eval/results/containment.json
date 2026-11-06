@@ -1,0 +1,493 @@
+{
+  "name": "containment",
+  "started": "2026-11-06T21:44:06.435Z",
+  "finished": "2026-11-06T21:44:34.043Z",
+  "sandbox": {
+    "backend": "microsandbox",
+    "kernel": "Linux 6.12.113"
+  },
+  "bound_host": "httpbingo.org",
+  "unbound_host": "httpbin.org",
+  "summary": {
+    "baseline": {
+      "cases": 15,
+      "real_value_reached_unbound_host": 15,
+      "refused_by_sandbox": 0,
+      "positive_control_real_value_at_bound_host": 3,
+      "negative_control_passed": 3,
+      "seeds": 3
+    },
+    "errand": {
+      "cases": 15,
+      "real_value_reached_unbound_host": 0,
+      "refused_by_sandbox": 9,
+      "positive_control_real_value_at_bound_host": 3,
+      "negative_control_passed": 3,
+      "seeds": 3
+    }
+  },
+  "rows": [
+    {
+      "arm": "baseline",
+      "seed": 1,
+      "case": "form-urlencoded-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,applica"
+    },
+    {
+      "arm": "baseline",
+      "seed": 1,
+      "case": "form-multipart-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,applica"
+    },
+    {
+      "arm": "baseline",
+      "seed": 1,
+      "case": "query-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {\n    \"password\": \"<REAL VALUE>\"\n  },\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image"
+    },
+    {
+      "arm": "baseline",
+      "seed": 1,
+      "case": "json-fetch-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "200 {\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"*/*\",\n    \"Accept-Encoding\": \"gzip, deflate, br, zstd\",\n    \"Content-Length\": \"62\",\n    \"Content-Type\": \"appli"
+    },
+    {
+      "arm": "baseline",
+      "seed": 1,
+      "case": "header-fetch-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "200 {\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"*/*\",\n    \"Accept-Encoding\": \"gzip, deflate, br, zstd\",\n    \"Host\": \"httpbin.org\",\n    \"Origin\": \"https://http"
+    },
+    {
+      "arm": "baseline",
+      "seed": 1,
+      "case": "form-urlencoded-bound",
+      "host": "httpbingo.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": [\n      \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8"
+    },
+    {
+      "arm": "baseline",
+      "seed": 1,
+      "case": "no-credential-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": false,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {\n    \"ping\": \"1\"\n  },\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apn"
+    },
+    {
+      "arm": "errand",
+      "seed": 1,
+      "case": "form-urlencoded-unbound",
+      "host": "httpbin.org",
+      "status": 403,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": true,
+      "echo_excerpt": "{\"code\":\"secret_policy_denied\",\"domain\":\"httpbin.org\",\"message\":\"Request blocked by secret policy.\"}"
+    },
+    {
+      "arm": "errand",
+      "seed": 1,
+      "case": "form-multipart-unbound",
+      "host": "httpbin.org",
+      "status": 403,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": true,
+      "echo_excerpt": "{\"code\":\"secret_policy_denied\",\"domain\":\"httpbin.org\",\"message\":\"Request blocked by secret policy.\"}"
+    },
+    {
+      "arm": "errand",
+      "seed": 1,
+      "case": "query-unbound",
+      "host": "httpbin.org",
+      "status": 403,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": true,
+      "echo_excerpt": "{\"code\":\"secret_policy_denied\",\"domain\":\"httpbin.org\",\"message\":\"Request blocked by secret policy.\"}"
+    },
+    {
+      "arm": "errand",
+      "seed": 1,
+      "case": "json-fetch-unbound",
+      "host": "httpbin.org",
+      "status": null,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "no readable response: TypeError: Failed to fetch"
+    },
+    {
+      "arm": "errand",
+      "seed": 1,
+      "case": "header-fetch-unbound",
+      "host": "httpbin.org",
+      "status": null,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "no readable response: TypeError: Failed to fetch"
+    },
+    {
+      "arm": "errand",
+      "seed": 1,
+      "case": "form-urlencoded-bound",
+      "host": "httpbingo.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": [\n      \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8"
+    },
+    {
+      "arm": "errand",
+      "seed": 1,
+      "case": "no-credential-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {\n    \"ping\": \"1\"\n  },\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apn"
+    },
+    {
+      "arm": "baseline",
+      "seed": 2,
+      "case": "form-urlencoded-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,applica"
+    },
+    {
+      "arm": "baseline",
+      "seed": 2,
+      "case": "form-multipart-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,applica"
+    },
+    {
+      "arm": "baseline",
+      "seed": 2,
+      "case": "query-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {\n    \"password\": \"<REAL VALUE>\"\n  },\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image"
+    },
+    {
+      "arm": "baseline",
+      "seed": 2,
+      "case": "json-fetch-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "200 {\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"*/*\",\n    \"Accept-Encoding\": \"gzip, deflate, br, zstd\",\n    \"Content-Length\": \"62\",\n    \"Content-Type\": \"appli"
+    },
+    {
+      "arm": "baseline",
+      "seed": 2,
+      "case": "header-fetch-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "200 {\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"*/*\",\n    \"Accept-Encoding\": \"gzip, deflate, br, zstd\",\n    \"Host\": \"httpbin.org\",\n    \"Origin\": \"https://http"
+    },
+    {
+      "arm": "baseline",
+      "seed": 2,
+      "case": "form-urlencoded-bound",
+      "host": "httpbingo.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": [\n      \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8"
+    },
+    {
+      "arm": "baseline",
+      "seed": 2,
+      "case": "no-credential-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": false,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {\n    \"ping\": \"1\"\n  },\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apn"
+    },
+    {
+      "arm": "errand",
+      "seed": 2,
+      "case": "form-urlencoded-unbound",
+      "host": "httpbin.org",
+      "status": 403,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": true,
+      "echo_excerpt": "{\"code\":\"secret_policy_denied\",\"domain\":\"httpbin.org\",\"message\":\"Request blocked by secret policy.\"}"
+    },
+    {
+      "arm": "errand",
+      "seed": 2,
+      "case": "form-multipart-unbound",
+      "host": "httpbin.org",
+      "status": 403,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": true,
+      "echo_excerpt": "{\"code\":\"secret_policy_denied\",\"domain\":\"httpbin.org\",\"message\":\"Request blocked by secret policy.\"}"
+    },
+    {
+      "arm": "errand",
+      "seed": 2,
+      "case": "query-unbound",
+      "host": "httpbin.org",
+      "status": 403,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": true,
+      "echo_excerpt": "{\"code\":\"secret_policy_denied\",\"domain\":\"httpbin.org\",\"message\":\"Request blocked by secret policy.\"}"
+    },
+    {
+      "arm": "errand",
+      "seed": 2,
+      "case": "json-fetch-unbound",
+      "host": "httpbin.org",
+      "status": null,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "no readable response: TypeError: Failed to fetch"
+    },
+    {
+      "arm": "errand",
+      "seed": 2,
+      "case": "header-fetch-unbound",
+      "host": "httpbin.org",
+      "status": null,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "no readable response: TypeError: Failed to fetch"
+    },
+    {
+      "arm": "errand",
+      "seed": 2,
+      "case": "form-urlencoded-bound",
+      "host": "httpbingo.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": [\n      \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8"
+    },
+    {
+      "arm": "errand",
+      "seed": 2,
+      "case": "no-credential-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {\n    \"ping\": \"1\"\n  },\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apn"
+    },
+    {
+      "arm": "baseline",
+      "seed": 3,
+      "case": "form-urlencoded-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,applica"
+    },
+    {
+      "arm": "baseline",
+      "seed": 3,
+      "case": "form-multipart-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,applica"
+    },
+    {
+      "arm": "baseline",
+      "seed": 3,
+      "case": "query-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {\n    \"password\": \"<REAL VALUE>\"\n  },\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image"
+    },
+    {
+      "arm": "baseline",
+      "seed": 3,
+      "case": "json-fetch-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "200 {\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"*/*\",\n    \"Accept-Encoding\": \"gzip, deflate, br, zstd\",\n    \"Content-Length\": \"62\",\n    \"Content-Type\": \"appli"
+    },
+    {
+      "arm": "baseline",
+      "seed": 3,
+      "case": "header-fetch-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "200 {\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"*/*\",\n    \"Accept-Encoding\": \"gzip, deflate, br, zstd\",\n    \"Host\": \"httpbin.org\",\n    \"Origin\": \"https://http"
+    },
+    {
+      "arm": "baseline",
+      "seed": 3,
+      "case": "form-urlencoded-bound",
+      "host": "httpbingo.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": [\n      \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8"
+    },
+    {
+      "arm": "baseline",
+      "seed": 3,
+      "case": "no-credential-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": false,
+      "placeholder_received": null,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {\n    \"ping\": \"1\"\n  },\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apn"
+    },
+    {
+      "arm": "errand",
+      "seed": 3,
+      "case": "form-urlencoded-unbound",
+      "host": "httpbin.org",
+      "status": 403,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": true,
+      "echo_excerpt": "{\"code\":\"secret_policy_denied\",\"domain\":\"httpbin.org\",\"message\":\"Request blocked by secret policy.\"}"
+    },
+    {
+      "arm": "errand",
+      "seed": 3,
+      "case": "form-multipart-unbound",
+      "host": "httpbin.org",
+      "status": 403,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": true,
+      "echo_excerpt": "{\"code\":\"secret_policy_denied\",\"domain\":\"httpbin.org\",\"message\":\"Request blocked by secret policy.\"}"
+    },
+    {
+      "arm": "errand",
+      "seed": 3,
+      "case": "query-unbound",
+      "host": "httpbin.org",
+      "status": 403,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": true,
+      "echo_excerpt": "{\"code\":\"secret_policy_denied\",\"domain\":\"httpbin.org\",\"message\":\"Request blocked by secret policy.\"}"
+    },
+    {
+      "arm": "errand",
+      "seed": 3,
+      "case": "json-fetch-unbound",
+      "host": "httpbin.org",
+      "status": null,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "no readable response: TypeError: Failed to fetch"
+    },
+    {
+      "arm": "errand",
+      "seed": 3,
+      "case": "header-fetch-unbound",
+      "host": "httpbin.org",
+      "status": null,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "no readable response: TypeError: Failed to fetch"
+    },
+    {
+      "arm": "errand",
+      "seed": 3,
+      "case": "form-urlencoded-bound",
+      "host": "httpbingo.org",
+      "status": 200,
+      "real_value_received": true,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": [\n      \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8"
+    },
+    {
+      "arm": "errand",
+      "seed": 3,
+      "case": "no-credential-unbound",
+      "host": "httpbin.org",
+      "status": 200,
+      "real_value_received": false,
+      "placeholder_received": false,
+      "refused_by_sandbox": false,
+      "echo_excerpt": "{\n  \"args\": {\n    \"ping\": \"1\"\n  },\n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apn"
+    }
+  ]
+}

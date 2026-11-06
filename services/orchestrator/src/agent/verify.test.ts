@@ -12,6 +12,10 @@ describe("totalFromPage", () => {
   it("reads a total whose amount is on the next line", () => {
     expect(totalFromPage("Subtotal\n$2,340.00\nShipping\nFree\nTotal\n$2,340.00\nPlace order")).toBe(2340);
   });
+  it("fails closed on conflicting totals or a borrowed line that is not a bare amount", () => {
+    expect(totalFromPage("Total $2,340.00\nOrder total $2,999.00")).toBeNull();
+    expect(totalFromPage("Total\nSave $50 on your next order")).toBeNull();
+  });
   it("returns null when no total is shown", () => {
     expect(totalFromPage("Checkout\nShipping address\nContinue")).toBeNull();
   });

@@ -97,14 +97,24 @@ export async function verifyHeldOrder(intent: OrderIntent, held: HeldRequest, sc
 const MONEY = /\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)/;
 
 /** Find the order total on a checkout page ("Total $2,340.00" and similar). */
+const NOT_ORDER_TOTAL = /sub\s*-?total|per unit|\btax\b|\beach\b|saving|discount/i;
+const TOTAL_LABEL_ONLY = /^(order\s+|grand\s+)?total:?$/i;
+const MONEY_ONLY = /^\$\s?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?)$/;
+
+/**
+ * Find the order total on a checkout page ("Total $2,340.00", or "Total" followed by "$2,340.00").
+ * Fails closed: when the page shows conflicting totals, or none, the answer is null and the budget
+ * check stays unverified for the reviewer.
+ */
 export function totalFromPage(text: string): number | null {
-  const found: number[] = [];
+  const found = new Set<number>();
   const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
   lines.forEach((line, i) => {
-    if (!/\btotal\b/i.test(line) || /sub\s*-?total|per unit|\btax\b/i.test(line)) return;
-    // The amount may sit on the same line or on the next one ("Total" / "$2,340.00").
-    const m = line.match(MONEY) ?? (lines[i + 1] && !/\btotal\b/i.test(lines[i + 1]!) ? lines[i + 1]!.match(MONEY) : null);
-    if (m) found.push(Number(m[1]!.replace(/,/g, "")));
+    if (!/\btotal\b/i.test(line) || NOT_ORDER_TOTAL.test(line)) return;
+    const same = line.match(MONEY);
+    const next = lines[i + 1];
+    const m = same ?? (TOTAL_LABEL_ONLY.test(line) && next ? next.match(MONEY_ONLY) : null);
+    if (m) found.add(Number(m[1]!.replace(/,/g, "")));
   });
-  return found.length ? Math.max(...found) : null;
+  return found.size === 1 ? [...found][0]! : null;
 }
