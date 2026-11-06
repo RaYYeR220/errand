@@ -4,13 +4,21 @@ import { createReadStream, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { config } from "./config.js";
-import { enqueue, runs, decideHold, queuePosition } from "./runs/runner.js";
+import { timingSafeEqual } from "node:crypto";
+import { enqueue, runs, decideHold, queuePosition, checkReviewToken } from "./runs/runner.js";
 import { verifyChain } from "./runs/ledger.js";
 import { supplierDefs } from "./suppliers.js";
 import * as sandboxes from "./sandbox/microsandbox.js";
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" }, bodyLimit: 2 * 1024 * 1024 });
-await app.register(cors, { origin: true });
+await app.register(cors, { origin: [config.webOrigin] });
+
+function isAdmin(header: string | undefined): boolean {
+  if (!config.adminToken || !header) return false;
+  const a = Buffer.from(header);
+  const b = Buffer.from(`Bearer ${config.adminToken}`);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 const DEFAULT_TASK =
   "Order 12 USB-C docking stations for the new hires. Each must drive two 4K monitors and deliver at least 90 W to the laptop. Budget $2,400 all-in, and they must arrive within 3 business days.";
@@ -43,11 +51,11 @@ app.get("/api/suppliers", async () =>
 
 app.post("/api/runs", async (req, reply) => {
   const body = RunBody.parse(req.body ?? {});
-  if (body.auto_approve && req.headers.authorization !== `Bearer ${config.adminToken}`) {
+  if (body.auto_approve && !isAdmin(req.headers.authorization)) {
     return reply.code(403).send({ error: "auto_approve is reserved for evaluation runs" });
   }
   const run = enqueue({ ...body, suppliers: body.suppliers ?? supplierDefs().map((s) => s.id) });
-  return reply.code(202).send({ id: run.state.id, status: run.state.status, queue_position: queuePosition(run.state.id) });
+  return reply.code(202).send({ id: run.state.id, status: run.state.status, queue_position: queuePosition(run.state.id), review_token: run.reviewToken });
 });
 
 app.get("/api/runs", async () =>
@@ -78,7 +86,7 @@ app.get<{ Params: { id: string } }>("/api/runs/:id/events", async (req, reply) =
     "cache-control": "no-cache, no-transform",
     connection: "keep-alive",
     "x-accel-buffering": "no",
-    "access-control-allow-origin": "*",
+    "access-control-allow-origin": config.webOrigin,
   });
   const send = (event: string, data: unknown) => reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   send("state", run.state);
@@ -116,6 +124,10 @@ app.post<{ Params: { id: string; holdId: string } }>("/api/runs/:id/holds/:holdI
   const body = Decision.parse(req.body ?? {});
   const run = runs.get(req.params.id);
   if (!run) return reply.code(404).send({ error: "not found" });
+  const token = req.headers["x-review-token"];
+  if (!checkReviewToken(run, typeof token === "string" ? token : undefined) && !isAdmin(req.headers.authorization)) {
+    return reply.code(403).send({ error: "only the reviewer of this errand can decide its held order" });
+  }
   const verdict = run.state.order?.hold?.verification?.verdict;
   if (body.decision === "approve" && verdict === undefined) {
     return reply.code(409).send({ error: "the order check is still running" });

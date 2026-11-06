@@ -16,7 +16,10 @@ export const config = {
   port: Number(env("PORT", "4000")),
   publicUrl: env("PUBLIC_URL", "http://localhost:4000"),
   dataDir: path.resolve(env("DATA_DIR", "./data")),
-  adminToken: env("ADMIN_TOKEN", "dev-admin-token"),
+  /** Required for evaluation-only features (auto-approve). Unset → those features are off. */
+  adminToken: optional("ADMIN_TOKEN"),
+  /** Origin of the web app allowed by CORS. */
+  webOrigin: env("WEB_ORIGIN", "http://localhost:3000"),
 
   inference: {
     baseUrl: env("INFERENCE_BASE_URL", "https://api.vultrinference.com/v1"),
