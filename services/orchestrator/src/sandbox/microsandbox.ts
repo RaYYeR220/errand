@@ -124,7 +124,7 @@ export async function createBrowserSandbox(opts: {
     .memory(memory)
     .replace()
     .interceptTls()
-    .port(port, 9222);
+    .portBind("127.0.0.1", port, 9222);
   // Resource and lifetime caps are enforced by the runtime, not by the agent.
   builder = (builder as any).maxDuration ? (builder as any).maxDuration(maxDuration) : builder;
 
