@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { createServer } from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { Sandbox } from "microsandbox";
+import { Sandbox, NetworkPolicy, Rule, Destination } from "microsandbox";
 import type { ExecResult, SandboxIsolation } from "@errand/shared";
 
 /**
@@ -41,6 +41,14 @@ export interface ComputeSandbox {
 const BROWSER_IMAGE = process.env.BROWSER_IMAGE ?? "chromedp/headless-shell:latest";
 const COMPUTE_IMAGE = process.env.COMPUTE_IMAGE ?? "python:3.12-slim";
 const MSB_HOME = process.env.MSB_HOME ?? path.join(os.homedir(), ".microsandbox");
+
+/**
+ * Local development only: the stores run on the machine that hosts the sandboxes, under public
+ * wildcard DNS that answers with the sandbox gateway address (e.g. acme.172-16-0-5.sslip.io), and
+ * their certificates come from a local CA. Production suppliers are public hosts and need neither.
+ */
+const DEV_HOST_IP = process.env.SANDBOX_DEV_HOST_IP;
+const DEV_UPSTREAM_CA = process.env.SANDBOX_UPSTREAM_CA;
 
 const live = new Map<string, Sandbox>();
 /** Long-running processes (the browser); the handle must stay referenced or the process is reaped. */
@@ -116,6 +124,11 @@ export async function createBrowserSandbox(opts: {
 
   builder = builder.network((n: any) => {
     let net = n;
+    if (DEV_HOST_IP) {
+      const base = NetworkPolicy.fromProfiles(["public", "host"]);
+      net = net.policy({ ...base, rules: [Rule.allowEgress(Destination.cidr(`${DEV_HOST_IP}/32`)), ...base.rules] });
+    }
+    if (DEV_UPSTREAM_CA) net = net.tls((t: any) => t.upstreamCaCert(path.resolve(DEV_UPSTREAM_CA)));
     for (const s of opts.secrets) {
       const ph = placeholderFor(s.name);
       placeholders[s.name] = ph;
