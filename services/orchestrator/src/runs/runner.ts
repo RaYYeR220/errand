@@ -8,7 +8,8 @@ import { Ledger } from "./ledger.js";
 import { BrowserSession } from "../browser/session.js";
 import { OrderHold, type HeldRequest, type HoldDecision } from "../browser/hold.js";
 import * as sandboxes from "../sandbox/microsandbox.js";
-import { resolveSupplier, type Supplier } from "../suppliers.js";
+import { resolveSupplier, supplierDefs, type Supplier } from "../suppliers.js";
+import { z } from "zod";
 import { runActor } from "../agent/actor.js";
 import { plan as makePlan, type Plan } from "../agent/plan.js";
 import { verifyQuote, verifyHeldOrder, type OrderIntent } from "../agent/verify.js";
@@ -58,6 +59,8 @@ export interface RunState {
 }
 
 export class Run extends EventEmitter {
+  /** Verification per hold id; an approval is only accepted for a hold whose own check finished and did not fail. */
+  readonly holdChecks = new Map<string, VerifyResult>();
   readonly dir: string;
   /** Capability for deciding this run's held order; given only to whoever created the run. */
   readonly reviewToken = randomBytes(24).toString("base64url");
@@ -98,7 +101,28 @@ export function newRunId() {
   return `r_${t}_${randomBytes(3).toString("hex")}`;
 }
 
-export function enqueue(request: RunState["request"]): Run {
+export const DEFAULT_TASK =
+  "Order 12 USB-C docking stations for the new hires. Each must drive two 4K monitors and deliver at least 90 W to the laptop. Budget $2,400 all-in, and they must arrive within 3 business days.";
+
+/** One schema for every entry point (HTTP, MCP, eval), enforced inside enqueue. */
+export const ErrandInput = z.object({
+  task: z.string().min(10).max(2000).default(DEFAULT_TASK),
+  quantity: z.number().int().min(1).max(500).default(12),
+  budget_usd: z.number().positive().max(100_000).default(2400),
+  deadline_business_days: z.number().int().min(1).max(60).default(3),
+  ship_to: z.string().min(5).max(300).default("Lumen Labs, 500 Market St, Suite 400, San Francisco, CA 94105"),
+  suppliers: z.array(z.string().max(40)).min(1).max(5).optional(),
+  test_case: z.string().regex(/^[a-z0-9-]{1,32}$/).optional(),
+  auto_approve: z.boolean().optional(),
+});
+
+export function enqueue(input: unknown): Run {
+  const parsed = ErrandInput.parse(input ?? {});
+  const known = supplierDefs().map((s) => s.id);
+  const suppliers = [...new Set(parsed.suppliers ?? known)];
+  const unknown = suppliers.filter((s) => !known.includes(s));
+  if (unknown.length) throw new z.ZodError([{ code: "custom", path: ["suppliers"], message: `unknown supplier(s): ${unknown.join(", ")}`, input: unknown }]);
+  const request: RunState["request"] = { ...parsed, suppliers };
   const id = newRunId();
   const now = new Date().toISOString();
   const run = new Run({ id, status: "queued", request, created_at: now, updated_at: now, suppliers: [] });
@@ -261,6 +285,7 @@ async function placeOrder(run: Run, s: Supplier, plan: Plan, product: string, ex
         run.update({ status: "ordering" });
       },
       config.hold.timeoutS * 1000,
+      { host: s.host, safe: s.safe_requests ?? [] },
     );
     run.hold = hold;
     await hold.arm();
@@ -322,7 +347,8 @@ async function onHeld(run: Run, session: BrowserSession, held: HeldRequest, inte
   const text = await session.visibleText().catch(() => "");
   order.hold.screenshot = run.saveFrame(`${order.supplier}-held`, shot);
   const verification = await verifyHeldOrder(intent, held, shot, text);
-  order.hold.verification = verification;
+  run.holdChecks.set(held.hold_id, verification);
+  if (order.hold?.hold_id === held.hold_id) order.hold.verification = verification;
   L.append("verify", `Held order check: ${verification.verdict}`, { verification }, order.supplier);
   run.update();
 
@@ -344,9 +370,15 @@ export function checkReviewToken(run: Run, token: string | undefined): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export function decideHold(runId: string, holdId: string, d: HoldDecision): boolean {
+export function decideHold(runId: string, holdId: string, d: HoldDecision): { ok: boolean; error?: string } {
   const run = runs.get(runId);
-  return run?.hold?.decide(holdId, d) ?? false;
+  if (!run?.hold) return { ok: false, error: "no pending hold" };
+  if (d.decision === "approve" && d.by === "reviewer") {
+    const check = run.holdChecks.get(holdId);
+    if (!check) return { ok: false, error: "the order check for this hold is still running" };
+    if (check.verdict === "fail") return { ok: false, error: "this hold failed verification and cannot be approved" };
+  }
+  return run.hold.decide(holdId, d) ? { ok: true } : { ok: false, error: "no pending hold with that id" };
 }
 
 function finish(run: Run, status: RunStatus) {

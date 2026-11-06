@@ -5,7 +5,7 @@ import path from "node:path";
 import { z } from "zod";
 import { config } from "./config.js";
 import { timingSafeEqual } from "node:crypto";
-import { enqueue, runs, decideHold, queuePosition, checkReviewToken } from "./runs/runner.js";
+import { enqueue, runs, decideHold, queuePosition, checkReviewToken, ErrandInput } from "./runs/runner.js";
 import { verifyChain } from "./runs/ledger.js";
 import { supplierDefs } from "./suppliers.js";
 import * as sandboxes from "./sandbox/microsandbox.js";
@@ -21,19 +21,6 @@ function isAdmin(header: string | undefined): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-const DEFAULT_TASK =
-  "Order 12 USB-C docking stations for the new hires. Each must drive two 4K monitors and deliver at least 90 W to the laptop. Budget $2,400 all-in, and they must arrive within 3 business days.";
-
-const RunBody = z.object({
-  task: z.string().min(10).max(2000).default(DEFAULT_TASK),
-  quantity: z.number().int().min(1).max(500).default(12),
-  budget_usd: z.number().positive().max(100_000).default(2400),
-  deadline_business_days: z.number().int().min(1).max(60).default(3),
-  ship_to: z.string().min(5).max(300).default("Lumen Labs, 500 Market St, Suite 400, San Francisco, CA 94105"),
-  suppliers: z.array(z.string()).min(1).max(5).optional(),
-  test_case: z.string().regex(/^[a-z0-9-]{1,32}$/).optional(),
-  auto_approve: z.boolean().optional(),
-});
 
 app.get("/api/health", async () => {
   const keyed = Boolean(config.inference.apiKey);
@@ -51,11 +38,17 @@ app.get("/api/suppliers", async () =>
 );
 
 app.post("/api/runs", async (req, reply) => {
-  const body = RunBody.parse(req.body ?? {});
-  if (body.auto_approve && !isAdmin(req.headers.authorization)) {
+  const parsed = ErrandInput.safeParse(req.body ?? {});
+  if (!parsed.success) return reply.code(400).send({ error: "invalid errand", issues: parsed.error.issues });
+  if (parsed.data.auto_approve && !isAdmin(req.headers.authorization)) {
     return reply.code(403).send({ error: "auto_approve is reserved for evaluation runs" });
   }
-  const run = enqueue({ ...body, suppliers: body.suppliers ?? supplierDefs().map((s) => s.id) });
+  let run;
+  try {
+    run = enqueue(parsed.data);
+  } catch (e) {
+    return reply.code(400).send({ error: String((e as Error).message).slice(0, 300) });
+  }
   return reply.code(202).send({ id: run.state.id, status: run.state.status, queue_position: queuePosition(run.state.id), review_token: run.reviewToken });
 });
 
@@ -129,16 +122,12 @@ app.post<{ Params: { id: string; holdId: string } }>("/api/runs/:id/holds/:holdI
   if (!checkReviewToken(run, typeof token === "string" ? token : undefined) && !isAdmin(req.headers.authorization)) {
     return reply.code(403).send({ error: "only the reviewer of this errand can decide its held order" });
   }
-  const verdict = run.state.order?.hold?.verification?.verdict;
-  if (body.decision === "approve" && verdict === undefined) {
-    return reply.code(409).send({ error: "the order check is still running" });
-  }
-  const ok = decideHold(req.params.id, req.params.holdId, {
+  const res = decideHold(req.params.id, req.params.holdId, {
     decision: body.decision,
     reason: body.reason || (body.decision === "approve" ? "Approved by reviewer" : "Rejected by reviewer"),
     by: "reviewer",
   });
-  if (!ok) return reply.code(409).send({ error: "no pending hold with that id" });
+  if (!res.ok) return reply.code(409).send({ error: res.error });
   return { ok: true };
 });
 

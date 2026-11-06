@@ -6,8 +6,30 @@ export interface HoldRuleSpec {
   label: string;
   host: string;
   method: string;
-  /** Matched against path + query. */
+  /** Matched against the normalized path + query (see `normalizeTarget`). */
   pathRegex: string;
+}
+
+/**
+ * Fail-closed net for the order phase: any non-GET request to the supplier host that looks like it
+ * could place or finalize an order is held too, unless it is on the supplier's list of known-safe
+ * requests (cart refreshes and the like).
+ */
+export interface CatchAllSpec {
+  host: string;
+  safe: string[];
+}
+
+const ORDERISH = /(checkout|place[-_]?order|complete|submit[-_]?order|(^|[^a-z_])order([^a-z_]|$))/i;
+
+/** Lowercase path, collapse duplicate slashes, drop a trailing slash, sort query parameters. */
+export function normalizeTarget(rawUrl: string): string {
+  const url = new URL(rawUrl);
+  let p = decodeURIComponent(url.pathname).toLowerCase().replace(/\/{2,}/g, "/");
+  if (p.length > 1) p = p.replace(/\/+$/, "");
+  const params = [...url.searchParams.entries()].map(([k, v]) => [k.toLowerCase(), v.toLowerCase()] as const).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const q = params.map(([k, v]) => `${k}=${v}`).join("&");
+  return q ? `${p}?${q}` : p;
 }
 
 export interface HeldRequest {
@@ -73,14 +95,21 @@ export class OrderHold {
     private readonly onHeld: (held: HeldRequest) => void,
     private readonly onResolved: (held: HeldRequest, d: HoldDecision) => void,
     private readonly timeoutMs = 10 * 60_000,
+    private readonly catchAll?: CatchAllSpec,
   ) {}
 
   match(req: Request): HoldRuleSpec | undefined {
     const url = new URL(req.url());
-    const pathAndQuery = url.pathname + url.search;
-    return this.rules.find(
-      (r) => r.method.toUpperCase() === req.method().toUpperCase() && url.host === r.host && new RegExp(r.pathRegex).test(pathAndQuery),
-    );
+    const host = url.host.toLowerCase();
+    const method = req.method().toUpperCase();
+    const target = normalizeTarget(req.url());
+    const rule = this.rules.find((r) => r.method.toUpperCase() === method && host === r.host.toLowerCase() && new RegExp(r.pathRegex, "i").test(target));
+    if (rule) return rule;
+    if (this.catchAll && method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && host === this.catchAll.host.toLowerCase()) {
+      const safe = this.catchAll.safe.some((p) => new RegExp(p, "i").test(target));
+      if (!safe && ORDERISH.test(target)) return { id: "catch-all", label: "Possible order request", host, method, pathRegex: ".*" };
+    }
+    return undefined;
   }
 
   async arm() {
@@ -95,6 +124,10 @@ export class OrderHold {
         rule = undefined;
       }
       if (!rule) return route.fallback();
+      if (this.pending.size > 0) {
+        await route.fulfill({ status: 409, contentType: "text/html; charset=utf-8", body: REJECT_PAGE(rule.label, "Another order request is already waiting for review.") }).catch(() => {});
+        return;
+      }
       const body = summarizeBody(req);
       const held: HeldRequest = {
         hold_id: randomUUID(),

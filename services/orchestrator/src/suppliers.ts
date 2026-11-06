@@ -12,6 +12,8 @@ export interface SupplierDef {
   order_request: { method: string; path_regex: string }[];
   js_readable_cookies?: string[];
   asset_hosts?: string[];
+  /** Non-GET requests during checkout that are known not to place an order (regexes on the normalized target). */
+  safe_requests?: string[];
 }
 
 export interface Supplier extends SupplierDef {

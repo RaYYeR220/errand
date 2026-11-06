@@ -27,16 +27,21 @@ function buildServer() {
         "Start a purchasing errand: Errand signs in to the supplier portals in disposable microVMs (the browser never holds the passwords), compares offers, and prepares the order. " +
         "The order is held until a person approves it at the returned review_url.",
       inputSchema: {
-        task: z.string().min(10).describe("What to buy and any constraints, in plain language."),
+        task: z.string().min(10).max(2000).describe("What to buy and any constraints, in plain language."),
         quantity: z.number().int().min(1).max(500),
-        budget_usd: z.number().positive(),
+        budget_usd: z.number().positive().max(100_000),
         deadline_business_days: z.number().int().min(1).max(60),
-        ship_to: z.string().min(5),
-        suppliers: z.array(z.string()).optional(),
+        ship_to: z.string().min(5).max(300),
+        suppliers: z.array(z.string().max(40)).min(1).max(5).optional(),
       },
     },
     async (args) => {
-      const run = enqueue({ ...args, suppliers: args.suppliers ?? supplierDefs().map((s) => s.id) });
+      let run;
+      try {
+        run = enqueue(args);
+      } catch (e) {
+        return { isError: true, content: [{ type: "text" as const, text: String((e as Error).message).slice(0, 300) }] };
+      }
       const review_url = `${config.webOrigin}/errands/${run.state.id}#review=${run.reviewToken}`;
       return { content: [{ type: "text", text: JSON.stringify({ id: run.state.id, status: run.state.status, review_url }, null, 2) }] };
     },
