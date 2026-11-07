@@ -24,6 +24,8 @@ scripts/seed.sh                # catalog, pricing, accounts; safe to re-run
 
 `scripts/seed.sh` is idempotent: it updates records in place, resets stock to the catalog numbers and rebuilds the contract price lists. Seed one supplier with `scripts/seed.sh northwind` or `scripts/seed.sh acme`.
 
+`scripts/restock.sh` tops stock back up to the catalog numbers and touches nothing else, so it is safe while buyers browse. On the public demo it runs from cron every 5 minutes (installed by `infra/deploy-suppliers.sh`), so approved orders never use up the reference answer.
+
 Stop with `docker compose down`; add `-v` to delete the databases.
 
 ### Hostnames
