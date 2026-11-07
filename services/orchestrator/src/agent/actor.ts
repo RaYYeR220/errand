@@ -15,8 +15,8 @@ export interface ActorContext {
   signal: AbortSignal;
   onFrame?: (jpeg: Buffer, step: number) => void;
   onQuote?: (quote: Quote, screenshot: Buffer) => void;
-  /** Called when the agent clicks something; lets the runner notice a held request. */
-  afterAction?: () => Promise<"continue" | "stop">;
+  /** Called when the agent clicks something; lets the runner notice a held request and, after a check fails, tell the agent why. */
+  afterAction?: () => Promise<"continue" | "stop" | { note: string }>;
   maxSteps?: number;
 }
 
@@ -226,7 +226,9 @@ export async function runActor(ctx: ActorContext, session: BrowserSession): Prom
     ctx.ledger.append("agent", label, { result, url: session.page.url() }, ctx.supplierId);
 
     if (ctx.afterAction && (name === "click" || name === "press")) {
-      if ((await ctx.afterAction()) === "stop") return { status: "stopped", summary: "stopped by the run", steps: step };
+      const next = await ctx.afterAction();
+      if (next === "stop") return { status: "stopped", summary: "stopped by the run", steps: step };
+      if (typeof next === "object") history[history.length - 1]!.result += ` | ${next.note}`;
     }
   }
   return { status: "max_steps", summary: `Stopped at the ${maxSteps}-step limit; the offers recorded so far were kept.`, steps: maxSteps };

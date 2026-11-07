@@ -33,6 +33,7 @@ describe("checkoutAddressInstructions", () => {
   it("lists every field with the buyer's contact", () => {
     const s = checkoutAddressInstructions("Lumen Labs, 500 Market St, Suite 400, San Francisco, CA 94105", { first_name: "Sam", last_name: "Rivera", phone: "+1 510 555 0143" });
     expect(s).toContain('first name "Sam"');
+    expect(s).toContain('address "500 Market St, Suite 400"');
     expect(s).toContain('state / province "CA"');
     expect(s).toContain('ZIP / postal code "94105"');
   });

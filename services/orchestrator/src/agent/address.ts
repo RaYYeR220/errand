@@ -37,8 +37,9 @@ export function checkoutAddressInstructions(line: string, contact?: { first_name
   const fields = [
     ...(contact ? [`first name "${contact.first_name}"`, `last name "${contact.last_name}"`, `phone "${contact.phone}"`] : []),
     `company "${a.company}"`,
-    `address "${a.address_1}"`,
-    ...(a.address_2 ? [`apartment / suite "${a.address_2}"`] : []),
+    a.address_2
+      ? `address "${a.address_1}, ${a.address_2}" (if the form has a separate apartment / suite field, put "${a.address_2}" there and "${a.address_1}" in the address field; the suite must not be dropped)`
+      : `address "${a.address_1}"`,
     `city "${a.city}"`,
     `state / province "${a.state}"`,
     `ZIP / postal code "${a.zip}"`,

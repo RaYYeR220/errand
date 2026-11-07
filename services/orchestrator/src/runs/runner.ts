@@ -376,6 +376,10 @@ async function placeOrder(run: Run, s: Supplier, plan: Plan, product: string, ex
     L.append("sandbox", `Order microVM started for ${s.name}`, { sandbox: box.id, isolation: box.isolation, account: s.account.username }, s.id);
     session = await BrowserSession.connect(box.cdp);
     const sess = session;
+    // A failed check rejects the held request; the agent gets one chance to correct the checkout and try again.
+    // A person's rejection ends the order.
+    let verifierRetries = 0;
+    let note: string | undefined;
 
     const hold = new OrderHold(
       sess.context,
@@ -383,8 +387,19 @@ async function placeOrder(run: Run, s: Supplier, plan: Plan, product: string, ex
       (held) => void onHeld(run, sess, held, intent),
       (held, d) => {
         order.decision = d;
-        order.status = d.decision === "approve" ? "approved" : "rejected";
-        L.append("approval", d.decision === "approve" ? `Released by ${d.by}` : `Rejected by ${d.by}: ${d.reason}`, { hold_id: held.hold_id, decision: d }, s.id);
+        const retry = d.decision === "reject" && d.by === "verifier" && verifierRetries < 1;
+        if (retry) {
+          verifierRetries++;
+          order.status = "browsing";
+          const failed = Object.values(run.holdChecks.get(held.hold_id)?.checks ?? {}).filter((c) => c.p !== null && c.p < 0.5);
+          note =
+            `Place order was held and NOT sent: the check failed on ${failed.map((c) => `"${c.question}"`).join(", ") || "the order details"}. ` +
+            `Correct this on the checkout page (approved: ${req.quantity} × ${product}, PO ${po}, ${checkoutAddressInstructions(req.ship_to, s.account.contact)}), then place the order again.`;
+          L.append("approval", `Rejected by verifier: ${d.reason} The agent gets one chance to correct the checkout.`, { hold_id: held.hold_id, decision: d }, s.id);
+        } else {
+          order.status = d.decision === "approve" ? "approved" : "rejected";
+          L.append("approval", d.decision === "approve" ? `Released by ${d.by}` : `Rejected by ${d.by}: ${d.reason}`, { hold_id: held.hold_id, decision: d }, s.id);
+        }
         run.update({ status: "ordering" });
       },
       config.hold.timeoutS * 1000,
@@ -414,7 +429,13 @@ async function placeOrder(run: Run, s: Supplier, plan: Plan, product: string, ex
         afterAction: async () => {
           // While a request is held, the agent waits for the decision.
           while (hold.pendingHolds().length) await new Promise((r) => setTimeout(r, 500));
-          return run.abort.signal.aborted ? "stop" : "continue";
+          if (run.abort.signal.aborted || order.status === "rejected") return "stop";
+          if (note) {
+            const n = note;
+            note = undefined;
+            return { note: n };
+          }
+          return "continue";
         },
       },
       sess,
