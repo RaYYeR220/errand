@@ -122,7 +122,7 @@ cd apps/web && npx next dev -p 3317
 | `COMPANY_ADDRESSES` | orchestrator | the address book ship-to must come from |
 | `MCP_TOKEN` | orchestrator | enables the MCP endpoint |
 
-**Tests:** `pnpm -r test` (30 unit tests: ledger chain, landed-cost reference, hold matching, checkout total parsing, address fields). **Containment eval:** `cd services/orchestrator && SEEDS=3 npx tsx ../../eval/containment.ts`.
+**Tests:** `pnpm -r test` (32 unit tests: ledger chain, landed-cost reference, hold matching, checkout total parsing, address fields, ship-to question). **Containment eval:** `cd services/orchestrator && SEEDS=3 npx tsx ../../eval/containment.ts`.
 
 ## MCP
 

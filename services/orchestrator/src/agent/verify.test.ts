@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { totalFromPage } from "./verify.js";
+import { totalFromPage, shipToQuestion } from "./verify.js";
 
 describe("totalFromPage", () => {
   it("reads the order total and ignores subtotals and unit prices", () => {
@@ -28,5 +28,16 @@ describe("totalFromPage", () => {
   });
   it("returns null when no total is shown", () => {
     expect(totalFromPage("Checkout\nShipping address\nContinue")).toBeNull();
+  });
+});
+
+describe("shipToQuestion", () => {
+  it("names the street, suite, city and ZIP", () => {
+    expect(shipToQuestion("Lumen Labs, 500 Market St, Suite 400, San Francisco, CA 94105")).toBe(
+      "Is the shipping address on the checkout page 500 Market St, Suite 400, San Francisco, ZIP 94105?",
+    );
+  });
+  it("falls back to a general question", () => {
+    expect(shipToQuestion("HQ")).toBe("Is the shipping address on the checkout page the approved ship-to address?");
   });
 });

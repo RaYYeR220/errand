@@ -63,6 +63,17 @@ export interface OrderIntent {
 }
 
 /**
+ * What decides where the goods go: street, unit, city and ZIP (pages often leave the company or state out of the summary).
+ * The question names the values: the decisions model answers a concrete question far more sharply than "the approved address"
+ * (measured on a held checkout: 0.96 with the right address, 0.03 with the suite missing).
+ */
+export function shipToQuestion(shipTo: string): string {
+  const a = parseAddress(shipTo);
+  if (!a) return "Is the shipping address on the checkout page the approved ship-to address?";
+  return `Is the shipping address on the checkout page ${a.address_1}${a.address_2 ? `, ${a.address_2}` : ""}, ${a.city}, ZIP ${a.zip}?`;
+}
+
+/**
  * Before a held order is released: does what is about to be sent match what was approved?
  * Money is checked in code (the decisions model is a fast reader, not a calculator);
  * the model answers the questions that need reading the page and the request.
@@ -78,8 +89,7 @@ export async function verifyHeldOrder(intent: OrderIntent, held: HeldRequest, sc
     {
       item_matches: { instructions: "Is the item being ordered the approved product?" },
       quantity_matches: { instructions: "Is the quantity being ordered exactly the approved quantity?" },
-      // What decides where the goods go: street, unit, city and ZIP. Pages often omit the company or state from the summary.
-      ship_to_matches: { instructions: "Does the shipping address on the checkout page have the approved street address, suite and city, and the approved ZIP code?" },
+      ship_to_matches: { instructions: shipToQuestion(intent.ship_to) },
       po_matches: { instructions: "Does the order carry the approved PO number?" },
     },
     screenshot,
