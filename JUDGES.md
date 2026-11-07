@@ -43,4 +43,4 @@ At the bottom of the run page, **verify chain** opens `/api/runs/<id>/ledger`: e
 | Supplier network (Medusa B2B, WooCommerce) | [`suppliers/`](suppliers/) |
 | Vultr provisioning and deploy | [`infra/`](infra/) |
 
-If the run page ever stalls, the errand is queued behind another one (one runs at a time on this instance); the status pill says so.
+Three errands run side by side, each signed in as a different buyer on the Lumen Labs team, so concurrent orders never share a cart. If all three slots are busy, a new errand waits in the queue and the status pill shows its position. Short on time: **Open a finished errand** on the landing page shows a completed run with every frame, check and ledger entry, and the [3-minute video](https://youtu.be/9DKPpHRY748) shows one end to end.

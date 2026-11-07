@@ -4,10 +4,17 @@ import type { LedgerEntry } from "@errand/shared";
 
 export type RunState = any; // mirrors the orchestrator's RunState; kept loose on the client on purpose
 
+/** The server did not take the errand; it may point at the caller's errand in progress or at a finished one. */
+export class ErrandRefused extends Error {
+  constructor(message: string, readonly yourErrand?: string, readonly finishedErrand?: string) {
+    super(message);
+  }
+}
+
 export async function startErrand(body: Record<string, unknown> = {}) {
   const res = await fetch("/api/runs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ErrandRefused(json.error ?? `HTTP ${res.status}`, json.your_errand, json.finished_errand);
   return json as { id: string; status: string; queue_position: number; review_token: string };
 }
 

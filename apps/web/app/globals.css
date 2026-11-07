@@ -522,6 +522,31 @@ details pre {
   opacity: 0.6;
   cursor: wait;
 }
+.pill.ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-2);
+}
+.pill.ghost:hover {
+  color: var(--ink);
+}
+.hero-note {
+  margin: 14px auto 0;
+  max-width: 620px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+  text-align: center;
+}
+.hero-note .slots {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.hero-copy .error a {
+  color: var(--ink);
+  margin-left: 4px;
+}
 .hero-proof {
   margin-top: 18px;
   font-size: 13px;

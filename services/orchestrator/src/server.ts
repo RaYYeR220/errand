@@ -4,15 +4,19 @@ import { createReadStream, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { config } from "./config.js";
-import { timingSafeEqual } from "node:crypto";
-import { enqueue, runs, decideHold, queuePosition, checkReviewToken, ErrandInput, restoreRuns } from "./runs/runner.js";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { enqueue, runs, decideHold, queuePosition, checkReviewToken, ErrandInput, restoreRuns, BusyError, capacity } from "./runs/runner.js";
 import { showcase } from "./showcase.js";
 import { verifyChain } from "./runs/ledger.js";
 import { supplierDefs } from "./suppliers.js";
 import * as sandboxes from "./sandbox/microsandbox.js";
 import { registerMcp } from "./mcp.js";
 
-const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" }, bodyLimit: 2 * 1024 * 1024 });
+// The web app and Caddy sit in front on the same host; the client address is the first one they did not add.
+const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" }, bodyLimit: 2 * 1024 * 1024, trustProxy: ["127.0.0.1", "::1"] });
+
+/** An opaque per-client key for the public demo's limits; the address itself is not stored. */
+const clientKey = (ip: string) => createHash("sha256").update(`errand-client:${ip}`).digest("hex").slice(0, 24);
 await app.register(cors, { origin: [config.webOrigin] });
 
 function isAdmin(header: string | undefined): boolean {
@@ -30,9 +34,11 @@ app.get("/api/health", async () => {
     inference: { base_url: config.inference.baseUrl, configured: keyed, models: config.inference.models },
     sandboxes: { backend: "microsandbox", live: sandboxes.liveCount() },
     suppliers: supplierDefs().map((s) => s.id),
-    runs: { total: runs.size },
+    runs: { total: runs.size, ...capacity() },
   };
 });
+
+app.get("/api/capacity", async () => capacity());
 
 app.get("/api/suppliers", async () =>
   supplierDefs().map((s) => ({ id: s.id, name: s.name, platform: s.platform, base_url: s.base_url.replace("{BASE_DOMAIN}", config.suppliers.baseDomain) })),
@@ -73,8 +79,13 @@ app.post("/api/runs", async (req, reply) => {
   }
   let run;
   try {
-    run = enqueue(parsed.data);
+    // Limits apply to the public demo; the admin and run-token holders are not rate limited.
+    const limited = !isAdmin(req.headers.authorization) && !config.runToken;
+    run = enqueue(parsed.data, limited ? { client: clientKey(req.ip) } : {});
   } catch (e) {
+    if (e instanceof BusyError) {
+      return reply.code(429).send({ error: e.message, your_errand: e.yourErrand, finished_errand: showcase()?.run_id, ...capacity() });
+    }
     return reply.code(400).send({ error: String((e as Error).message).slice(0, 300) });
   }
   return reply.code(202).send({ id: run.state.id, status: run.state.status, queue_position: queuePosition(run.state.id), review_token: run.reviewToken });

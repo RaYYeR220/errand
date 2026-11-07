@@ -103,12 +103,13 @@ cd apps/web && npx next dev -p 3317
 |---|---|---|
 | `INFERENCE_API_KEY` | orchestrator | Vultr Serverless Inference key |
 | `SUPPLIERS_FILE`, `BASE_DOMAIN` | orchestrator | supplier definitions and their domain |
-| `NORTHWIND_BUYER_PASSWORD`, `ACME_BUYER_PASSWORD` | orchestrator | the buyer accounts (never sent to a sandbox) |
+| `NORTHWIND_BUYER_PASSWORD`, `ACME_BUYER_PASSWORD` (+ `…BUYER2…`, `…BUYER3…`) | orchestrator | the buyer accounts, one per person on the team (never sent to a sandbox) |
+| `MAX_CONCURRENT_RUNS`, `MAX_QUEUED`, `PER_CLIENT_PER_HOUR` | orchestrator | errands side by side (also capped by buyer accounts per supplier), queue length, and the public demo's per-visitor limit |
 | `RUN_TOKEN` | orchestrator | when set, creating an errand requires it (company mode); the public demo leaves it unset |
 | `COMPANY_ADDRESSES` | orchestrator | the address book ship-to must come from |
 | `MCP_TOKEN` | orchestrator | enables the MCP endpoint |
 
-**Tests:** `pnpm -r test` (24 unit tests: ledger chain, landed-cost reference, hold matching, checkout total parsing). **Containment eval:** `cd services/orchestrator && SEEDS=3 npx tsx ../../eval/containment.ts`.
+**Tests:** `pnpm -r test` (30 unit tests: ledger chain, landed-cost reference, hold matching, checkout total parsing, address fields). **Containment eval:** `cd services/orchestrator && SEEDS=3 npx tsx ../../eval/containment.ts`.
 
 ## MCP
 

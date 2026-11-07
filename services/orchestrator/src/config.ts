@@ -62,7 +62,10 @@ export const config = {
   },
 
   limits: {
-    maxConcurrentRuns: Number(env("MAX_CONCURRENT_RUNS", "2")),
+    /** Upper bound; the real number of side-by-side errands is also capped by buyer accounts per supplier. */
+    maxConcurrentRuns: Number(env("MAX_CONCURRENT_RUNS", "3")),
+    maxQueued: Number(env("MAX_QUEUED", "6")),
+    perClientPerHour: Number(env("PER_CLIENT_PER_HOUR", "4")),
     actorMaxSteps: Number(env("ACTOR_MAX_STEPS", "40")),
     browserMemoryMb: Number(env("BROWSER_MEMORY_MB", "1536")),
     computeMemoryMb: Number(env("COMPUTE_MEMORY_MB", "512")),

@@ -30,7 +30,7 @@ echo "deploy: handing the tree to the service account"
   && mkdir -p /var/lib/errand /etc/errand && chown errand:errand /var/lib/errand"
 
 echo "deploy: writing /etc/errand/errand.env"
-SUPPLIER_SECRETS="$(ssh -i "$KEY" "root@$SUPPLIER_HOST" "grep -E '^(NORTHWIND_BUYER_PASSWORD|ACME_BUYER_PASSWORD)=' /opt/errand/suppliers/.env")"
+SUPPLIER_SECRETS="$(ssh -i "$KEY" "root@$SUPPLIER_HOST" "grep -E '^(NORTHWIND|ACME)_BUYER[0-9]*_PASSWORD=' /opt/errand/suppliers/.env")"
 EXISTING_TOKENS="$("${SSH[@]}" "grep -E '^(ADMIN_TOKEN|MCP_TOKEN)=' /etc/errand/errand.env 2>/dev/null || true")"
 {
   echo "NODE_ENV=production"
@@ -41,7 +41,7 @@ EXISTING_TOKENS="$("${SSH[@]}" "grep -E '^(ADMIN_TOKEN|MCP_TOKEN)=' /etc/errand/
   echo "INFERENCE_API_KEY=$VULTR_INFERENCE_API_KEY"
   echo "SUPPLIERS_FILE=/opt/errand/suppliers/suppliers.json"
   echo "BASE_DOMAIN=$SUPPLIER_DOMAIN"
-  echo "MAX_CONCURRENT_RUNS=1"
+  echo "MAX_CONCURRENT_RUNS=${MAX_CONCURRENT_RUNS:-3}"
   if [ -n "$EXISTING_TOKENS" ]; then echo "$EXISTING_TOKENS"; else
     echo "ADMIN_TOKEN=$(openssl rand -hex 24)"
     echo "MCP_TOKEN=$(openssl rand -hex 24)"

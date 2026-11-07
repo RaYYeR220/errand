@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChainHero } from "@/components/landing/ChainHero";
-import { rememberReviewToken, startErrand } from "@/lib/api";
+import { ErrandRefused, rememberReviewToken, startErrand } from "@/lib/api";
+
+const VIDEO_URL = "https://youtu.be/9DKPpHRY748";
 
 type Containment = {
   summary: {
@@ -27,14 +29,28 @@ function Mark() {
 export default function Home() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; yourErrand?: string; finishedErrand?: string } | null>(null);
   const [containment, setContainment] = useState<Containment | null>(null);
+  const [finished, setFinished] = useState<string | null>(null);
+  const [cap, setCap] = useState<{ slots: number; running: number; queued: number } | null>(null);
 
   useEffect(() => {
     fetch("/api/eval/containment")
       .then((r) => (r.ok ? r.json() : null))
       .then(setContainment)
       .catch(() => {});
+    fetch("/api/showcase")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => setFinished(s?.run_id ?? null))
+      .catch(() => {});
+    const tick = () =>
+      fetch("/api/capacity")
+        .then((r) => (r.ok ? r.json() : null))
+        .then(setCap)
+        .catch(() => {});
+    tick();
+    const t = setInterval(tick, 10_000);
+    return () => clearInterval(t);
   }, []);
 
   const run = async () => {
@@ -45,7 +61,8 @@ export default function Home() {
       rememberReviewToken(r.id, r.review_token);
       router.push(`/errands/${r.id}#review=${r.review_token}`);
     } catch (e) {
-      setError(String((e as Error).message));
+      const r = e instanceof ErrandRefused ? e : undefined;
+      setError({ message: String((e as Error).message), yourErrand: r?.yourErrand, finishedErrand: r?.finishedErrand });
       setBusy(false);
     }
   };
@@ -84,11 +101,41 @@ export default function Home() {
             <button className="pill primary" onClick={run} disabled={busy}>
               {busy ? "Starting a microVM…" : "Run an errand →"}
             </button>
-            <a className="pill" href="#how">
-              How it works
+            {finished && (
+              <a className="pill" href={`/errands/${finished}`}>
+                Open a finished errand
+              </a>
+            )}
+            <a className="pill ghost" href={VIDEO_URL} target="_blank" rel="noreferrer">
+              Watch the 3-minute demo ↗
             </a>
           </div>
-          {error && <p className="error">{error}</p>}
+          <p className="hero-note">
+            A run takes about 5 minutes and you approve its order.{finished ? " Short on time? The finished errand keeps every frame, check and ledger entry." : ""}
+            {cap && cap.slots > 0 && (
+              <span className="slots">
+                {" "}
+                · {Math.max(0, cap.slots - cap.running)} of {cap.slots} errand slots free{cap.queued ? `, ${cap.queued} waiting` : ""}
+              </span>
+            )}
+          </p>
+          {error && (
+            <p className="error">
+              {error.message}
+              {error.yourErrand && (
+                <>
+                  {" "}
+                  <a href={`/errands/${error.yourErrand}`}>Open your errand</a>
+                </>
+              )}
+              {!error.yourErrand && (error.finishedErrand ?? finished) && (
+                <>
+                  {" "}
+                  <a href={`/errands/${error.finishedErrand ?? finished}`}>Open a finished errand</a>
+                </>
+              )}
+            </p>
+          )}
           <div className="hero-proof">
             <b />
             Live on Vultr · microVMs on VX1 · models on Vultr Serverless Inference

@@ -54,7 +54,7 @@ export function RunView({ id }: { id: string }) {
         <div className={`run-status s-${state.status}`}>
           <span className="dot" aria-hidden />
           {STATUS_LABEL[state.status] ?? state.status}
-          {queued && queuePos > 0 && <span className="muted"> · {queuePos === 1 ? "next up" : `position ${queuePos}`} (one errand runs at a time, about 5 minutes each)</span>}
+          {queued && queuePos > 0 && <span className="muted"> · {queuePos === 1 ? "next up" : `position ${queuePos}`} (each errand takes about 5 minutes)</span>}
           {!connected && <span className="muted"> · reconnecting</span>}
         </div>
       </header>

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { parseAddress } from "./address.js";
 import type { Quote, VerifyResult, Decision } from "@errand/shared";
 import { decide, type DecisionQuestion } from "../inference/client.js";
 import type { HeldRequest } from "../browser/hold.js";
@@ -70,14 +71,15 @@ export async function verifyHeldOrder(intent: OrderIntent, held: HeldRequest, sc
   const res = await run(
     {
       task: "A purchasing assistant is about to place this order. Compare the checkout page and the outgoing request with the approved intent.",
-      approved_intent: { product: intent.product, quantity: intent.quantity, ship_to: intent.ship_to, po_number: intent.po_number, supplier: intent.supplier },
+      approved_intent: { product: intent.product, quantity: intent.quantity, ship_to: intent.ship_to, ship_to_fields: parseAddress(intent.ship_to) ?? undefined, po_number: intent.po_number, supplier: intent.supplier },
       outgoing_request: { method: held.method, url: held.url, body: held.body_summary },
       checkout_page_text: pageText.slice(0, 6000),
     },
     {
       item_matches: { instructions: "Is the item being ordered the approved product?" },
       quantity_matches: { instructions: "Is the quantity being ordered exactly the approved quantity?" },
-      ship_to_matches: { instructions: "Is the shipping address the approved ship-to address?" },
+      // What decides where the goods go: street, unit, city and ZIP. Pages often omit the company or state from the summary.
+      ship_to_matches: { instructions: "Does the shipping address on the checkout page have the approved street address, suite and city, and the approved ZIP code?" },
       po_matches: { instructions: "Does the order carry the approved PO number?" },
     },
     screenshot,

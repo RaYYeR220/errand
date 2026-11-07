@@ -9,7 +9,8 @@ import { BrowserSession } from "../browser/session.js";
 import { OrderHold, type HeldRequest, type HoldDecision } from "../browser/hold.js";
 import { probeUnboundHost, type ProbeResult } from "../browser/probe.js";
 import * as sandboxes from "../sandbox/microsandbox.js";
-import { resolveSupplier, supplierDefs, type Supplier } from "../suppliers.js";
+import { accountSlots, resolveSupplier, supplierDefs, type Supplier } from "../suppliers.js";
+import { checkoutAddressInstructions } from "../agent/address.js";
 import { z } from "zod";
 import { runActor } from "../agent/actor.js";
 import { plan as makePlan, type Plan } from "../agent/plan.js";
@@ -69,6 +70,8 @@ export class Run extends EventEmitter {
   readonly ledger: Ledger;
   readonly abort = new AbortController();
   hold?: OrderHold;
+  /** Who asked for it (an opaque client key, kept in memory only), for the one-errand-per-client rule. */
+  client?: string;
 
   constructor(readonly state: RunState, restored?: LedgerEntry[]) {
     super();
@@ -96,7 +99,28 @@ export class Run extends EventEmitter {
 
 export const runs = new Map<string, Run>();
 const queue: Run[] = [];
-let active = 0;
+/** Account slots in use: slot k signs in with buyer account k at every supplier, so concurrent errands never share a cart. */
+const slotsInUse = new Set<number>();
+/** Client key → id of that client's unfinished errand. */
+const clientErrands = new Map<string, string>();
+/** Client key → start times of that client's recent errands. */
+const clientHistory = new Map<string, number[]>();
+
+/** The errand could not be accepted right now; nothing was queued. */
+export class BusyError extends Error {
+  constructor(message: string, readonly yourErrand?: string) {
+    super(message);
+  }
+}
+
+export function capacity() {
+  return {
+    slots: Math.min(config.limits.maxConcurrentRuns, accountSlots()),
+    running: slotsInUse.size,
+    queued: queue.length,
+    max_queued: config.limits.maxQueued,
+  };
+}
 
 /** Reload finished errands from disk after a restart; anything mid-flight is marked as interrupted. */
 export function restoreRuns() {
@@ -145,7 +169,7 @@ export const ErrandInput = z.object({
   auto_approve: z.boolean().optional(),
 });
 
-export function enqueue(input: unknown): Run {
+export function enqueue(input: unknown, opts: { client?: string } = {}): Run {
   const parsed = ErrandInput.parse(input ?? {});
   const known = supplierDefs().map((s) => s.id);
   const suppliers = [...new Set(parsed.suppliers ?? known)];
@@ -154,6 +178,19 @@ export function enqueue(input: unknown): Run {
   if (!config.companyAddresses.includes(parsed.ship_to)) {
     throw new z.ZodError([{ code: "custom", path: ["ship_to"], message: "ship_to must be one of the company's addresses", input: parsed.ship_to }]);
   }
+  if (opts.client) {
+    const mine = clientErrands.get(opts.client);
+    if (mine) throw new BusyError("You already have an errand in progress; open it to follow or decide it.", mine);
+    const hourAgo = Date.now() - 3_600_000;
+    const recent = (clientHistory.get(opts.client) ?? []).filter((t) => t > hourAgo);
+    if (recent.length >= config.limits.perClientPerHour) {
+      throw new BusyError(`That is ${recent.length} errands from you in the last hour; please try again later.`);
+    }
+    clientHistory.set(opts.client, recent);
+  }
+  if (queue.length >= config.limits.maxQueued) {
+    throw new BusyError("Every errand slot is busy and the queue is full; please try again in a few minutes.");
+  }
   const request: RunState["request"] = { ...parsed, suppliers };
   const id = newRunId();
   const now = new Date().toISOString();
@@ -161,22 +198,35 @@ export function enqueue(input: unknown): Run {
   runs.set(id, run);
   run.ledger.append("run", "Errand received", { request: { ...request } });
   run.update();
+  if (opts.client) {
+    run.client = opts.client;
+    clientErrands.set(opts.client, id);
+    clientHistory.get(opts.client)!.push(Date.now());
+  }
   queue.push(run);
   pump();
   return run;
 }
 
+function freeSlot(): number | undefined {
+  const { slots } = capacity();
+  for (let k = 0; k < slots; k++) if (!slotsInUse.has(k)) return k;
+  return undefined;
+}
+
 function pump() {
-  while (active < config.limits.maxConcurrentRuns && queue.length) {
+  for (let slot = freeSlot(); slot !== undefined && queue.length; slot = freeSlot()) {
     const run = queue.shift()!;
-    active++;
-    execute(run)
+    const taken = slot;
+    slotsInUse.add(taken);
+    execute(run, taken)
       .catch((e) => {
         run.ledger.append("run", "Errand failed", { error: String(e).slice(0, 500) });
         run.update({ status: "failed", error: String(e).slice(0, 500) });
       })
       .finally(() => {
-        active--;
+        slotsInUse.delete(taken);
+        if (run.client && clientErrands.get(run.client) === run.state.id) clientErrands.delete(run.client);
         pump();
       });
   }
@@ -187,7 +237,7 @@ export function queuePosition(id: string) {
   return i < 0 ? 0 : i + 1;
 }
 
-async function execute(run: Run) {
+async function execute(run: Run, slot: number) {
   const req = run.state.request;
   const L = run.ledger;
 
@@ -210,7 +260,7 @@ async function execute(run: Run) {
   run.update({ plan, plan_model: model });
 
   // 2. Visit every supplier in parallel, each in its own microVM.
-  const suppliers = req.suppliers.map((id) => resolveSupplier(id, req.test_case));
+  const suppliers = req.suppliers.map((id) => resolveSupplier(id, req.test_case, slot));
   run.update({
     status: "browsing",
     suppliers: suppliers.map((s) => ({ id: s.id, name: s.name, platform: s.platform, host: s.host, status: "pending", quotes: [] })),
@@ -251,7 +301,7 @@ async function visitSupplier(run: Run, s: Supplier, index: number, plan: Plan) {
   try {
     box = await sandboxes.createBrowserSandbox({ runId: run.state.id, label: s.id, secrets: secretsFor(s), memoryMb: config.limits.browserMemoryMb });
     st.isolation = box.isolation;
-    L.append("sandbox", `Browser microVM started for ${s.name}`, { sandbox: box.id, isolation: box.isolation, credential: `${s.id}.password bound to ${s.host}` }, s.id);
+    L.append("sandbox", `Browser microVM started for ${s.name}`, { sandbox: box.id, isolation: box.isolation, account: s.account.username, credential: `${s.id}.password bound to ${s.host}` }, s.id);
     run.update();
     session = await BrowserSession.connect(box.cdp);
     const outcome = await runActor(
@@ -323,7 +373,7 @@ async function placeOrder(run: Run, s: Supplier, plan: Plan, product: string, ex
   try {
     box = await sandboxes.createBrowserSandbox({ runId: run.state.id, label: `${s.id}-order`, secrets: secretsFor(s), memoryMb: config.limits.browserMemoryMb });
     order.isolation = box.isolation;
-    L.append("sandbox", `Order microVM started for ${s.name}`, { sandbox: box.id, isolation: box.isolation }, s.id);
+    L.append("sandbox", `Order microVM started for ${s.name}`, { sandbox: box.id, isolation: box.isolation, account: s.account.username }, s.id);
     session = await BrowserSession.connect(box.cdp);
     const sess = session;
 
@@ -352,7 +402,7 @@ async function placeOrder(run: Run, s: Supplier, plan: Plan, product: string, ex
         credentials: { username: s.account.username, passwordToken: box.placeholders[`${s.id}.password`]! },
         goal:
           `Sign in, add exactly ${req.quantity} of "${product}" to the cart, and check out: PO number ${po}, cost center IT-OPS-204, ` +
-          `ship to ${req.ship_to}, payment by invoice / pay on account. Then place the order. ` +
+          `${checkoutAddressInstructions(req.ship_to, s.account.contact)}; payment by invoice / pay on account. Then place the order. ` +
           `After the order is placed, read the order number from the confirmation and call done with it. If the order is refused, call fail with the message shown.`,
         ledger: L,
         signal: run.abort.signal,
