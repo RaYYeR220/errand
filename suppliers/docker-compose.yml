@@ -54,6 +54,8 @@ services:
       NORTHWIND_ADMIN_PASSWORD: ${NORTHWIND_ADMIN_PASSWORD:?run scripts/init-env.sh}
       NORTHWIND_BUYER_EMAIL: ${NORTHWIND_BUYER_EMAIL}
       NORTHWIND_BUYER_PASSWORD: ${NORTHWIND_BUYER_PASSWORD:?run scripts/init-env.sh}
+      NORTHWIND_BUYER2_PASSWORD: ${NORTHWIND_BUYER2_PASSWORD:-}
+      NORTHWIND_BUYER3_PASSWORD: ${NORTHWIND_BUYER3_PASSWORD:-}
     volumes:
       - ./catalog:/catalog:ro
     ports:
@@ -121,6 +123,8 @@ services:
       ACME_BUYER_USERNAME: ${ACME_BUYER_USERNAME:-lumenlabs-buyer}
       ACME_BUYER_EMAIL: ${ACME_BUYER_EMAIL}
       ACME_BUYER_PASSWORD: ${ACME_BUYER_PASSWORD:?run scripts/init-env.sh}
+      ACME_BUYER2_PASSWORD: ${ACME_BUYER2_PASSWORD:-}
+      ACME_BUYER3_PASSWORD: ${ACME_BUYER3_PASSWORD:-}
       CATALOG_PATH: /catalog/catalog.json
     volumes:
       - acme-uploads:/var/www/html/wp-content/uploads

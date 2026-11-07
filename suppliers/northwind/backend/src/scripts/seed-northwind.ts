@@ -63,6 +63,8 @@ type Catalog = {
     company: string;
     company_email: string;
     contact: { first_name: string; last_name: string; phone: string };
+    /** Buyers at the company; buyer N signs in as NORTHWIND_BUYER_EMAIL with N inserted before the @ (N > 1). */
+    team?: { first_name: string; last_name: string; phone: string }[];
     address: {
       company: string;
       address_1: string;
@@ -605,82 +607,95 @@ export default async function seedNorthwind({ container }: ExecArgs) {
     });
   }
 
-  // Buyer account ---------------------------------------------------------------
-  const buyerEmail = env("NORTHWIND_BUYER_EMAIL").toLowerCase();
-  const buyerPassword = env("NORTHWIND_BUYER_PASSWORD");
+  // Buyer accounts --------------------------------------------------------------
+  // One account per person on the company's team, all in the company's customer group,
+  // so concurrent errands each sign in with their own cart.
+  const team = buyer.team?.length ? buyer.team : [buyer.contact];
+  const seededBuyers: string[] = [];
+  for (const [i, person] of team.entries()) {
+    const n = i + 1;
+    const buyerPassword = process.env[n === 1 ? "NORTHWIND_BUYER_PASSWORD" : `NORTHWIND_BUYER${n}_PASSWORD`];
+    if (!buyerPassword) {
+      logger.warn(`Northwind seed: no password for buyer ${n}; skipping`);
+      continue;
+    }
+    const baseEmail = env("NORTHWIND_BUYER_EMAIL").toLowerCase();
+    const buyerEmail = n === 1 ? baseEmail : baseEmail.replace("@", `${n}@`);
+    seededBuyers.push(buyerEmail);
 
-  let [customer] = await customerModule.listCustomers({
-    email: buyerEmail,
-    has_account: true,
-  });
-  if (!customer) {
-    const authIdentityId = await registerEmailPass(
-      authModule,
-      buyerEmail,
-      buyerPassword
-    );
-    const { result } = await createCustomerAccountWorkflow(container).run({
-      input: {
-        authIdentityId,
-        customerData: {
-          email: buyerEmail,
-          first_name: buyer.contact.first_name,
-          last_name: buyer.contact.last_name,
-          phone: buyer.contact.phone,
-          company_name: buyer.company,
-        },
-      },
+    let [customer] = await customerModule.listCustomers({
+      email: buyerEmail,
+      has_account: true,
     });
-    customer = result;
-  } else {
-    await setEmailPassPassword(authModule, buyerEmail, buyerPassword);
-  }
-
-  const {
-    data: [customerWithEmployee],
-  } = await query.graph({
-    entity: "customer",
-    fields: ["id", "employee.id", "groups.id", "addresses.id"],
-    filters: { id: customer.id },
-  });
-  if (!customerWithEmployee?.employee?.id) {
-    await createEmployeesWorkflow(container).run({
-      input: {
-        customerId: customer.id,
-        employeeData: {
-          company_id: company.id,
-          is_admin: true,
-          spending_limit: 0,
-        } as any,
-      },
-    });
-  }
-  const inGroup = (customerWithEmployee?.groups ?? []).some(
-    (g: any) => g?.id === group.id
-  );
-  if (!inGroup) {
-    await customerModule.addCustomerToGroup({
-      customer_id: customer.id,
-      customer_group_id: group.id,
-    });
-  }
-  if (!customerWithEmployee?.addresses?.length) {
-    await createCustomerAddressesWorkflow(container).run({
-      input: {
-        addresses: [
-          {
-            customer_id: customer.id,
-            address_name: "Headquarters",
-            first_name: buyer.contact.first_name,
-            last_name: buyer.contact.last_name,
-            phone: buyer.contact.phone,
-            ...buyer.address,
-            is_default_shipping: true,
-            is_default_billing: true,
+    if (!customer) {
+      const authIdentityId = await registerEmailPass(
+        authModule,
+        buyerEmail,
+        buyerPassword
+      );
+      const { result } = await createCustomerAccountWorkflow(container).run({
+        input: {
+          authIdentityId,
+          customerData: {
+            email: buyerEmail,
+            first_name: person.first_name,
+            last_name: person.last_name,
+            phone: person.phone,
+            company_name: buyer.company,
           },
-        ],
-      },
+        },
+      });
+      customer = result;
+    } else {
+      await setEmailPassPassword(authModule, buyerEmail, buyerPassword);
+    }
+
+    const {
+      data: [customerWithEmployee],
+    } = await query.graph({
+      entity: "customer",
+      fields: ["id", "employee.id", "groups.id", "addresses.id"],
+      filters: { id: customer.id },
     });
+    if (!customerWithEmployee?.employee?.id) {
+      await createEmployeesWorkflow(container).run({
+        input: {
+          customerId: customer.id,
+          employeeData: {
+            company_id: company.id,
+            is_admin: true,
+            spending_limit: 0,
+          } as any,
+        },
+      });
+    }
+    const inGroup = (customerWithEmployee?.groups ?? []).some(
+      (g: any) => g?.id === group.id
+    );
+    if (!inGroup) {
+      await customerModule.addCustomerToGroup({
+        customer_id: customer.id,
+        customer_group_id: group.id,
+      });
+    }
+    if (!customerWithEmployee?.addresses?.length) {
+      await createCustomerAddressesWorkflow(container).run({
+        input: {
+          addresses: [
+            {
+              customer_id: customer.id,
+              address_name: "Headquarters",
+              first_name: person.first_name,
+              last_name: person.last_name,
+              phone: person.phone,
+              ...buyer.address,
+              is_default_shipping: true,
+              is_default_billing: true,
+            },
+          ],
+        },
+      });
+    }
   }
 
   // Admin user ------------------------------------------------------------------
@@ -704,7 +719,7 @@ export default async function seedNorthwind({ container }: ExecArgs) {
   }
 
   logger.info(
-    `Northwind seeded: ${Object.keys(variantIdsByKey).length} products, price list "${PRICE_LIST_TITLE}", buyer ${buyerEmail}, admin ${adminEmail}`
+    `Northwind seeded: ${Object.keys(variantIdsByKey).length} products, price list "${PRICE_LIST_TITLE}", buyers ${seededBuyers.join(", ")}, admin ${adminEmail}`
   );
 }
 

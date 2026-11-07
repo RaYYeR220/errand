@@ -55,9 +55,11 @@ No URL is baked into an image: change `BASE_DOMAIN` and run `docker compose up -
 | `NORTHWIND_PUBLISHABLE_KEY` | Storefront publishable API key (the seed assigns this token) |
 | `NORTHWIND_ADMIN_EMAIL`, `NORTHWIND_ADMIN_PASSWORD` | Medusa admin user |
 | `NORTHWIND_BUYER_EMAIL`, `NORTHWIND_BUYER_PASSWORD` | Lumen Labs buyer on Northwind |
+| `NORTHWIND_BUYER2_PASSWORD`, `NORTHWIND_BUYER3_PASSWORD` | more buyers on the same team (`buyer2@…`, `buyer3@…`), so errands can run side by side |
 | `ACME_DB_PASSWORD`, `ACME_DB_ROOT_PASSWORD`, `ACME_WP_SECRET` | MySQL and WordPress keys/salts |
 | `ACME_ADMIN_USER`, `ACME_ADMIN_EMAIL`, `ACME_ADMIN_PASSWORD` | WordPress administrator |
 | `ACME_BUYER_USERNAME`, `ACME_BUYER_EMAIL`, `ACME_BUYER_PASSWORD` | Lumen Labs buyer on Acme |
+| `ACME_BUYER2_PASSWORD`, `ACME_BUYER3_PASSWORD` | more buyers on the same team (`lumenlabs-buyer2`, `lumenlabs-buyer3`) |
 
 ## Catalog
 

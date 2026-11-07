@@ -169,11 +169,11 @@ def run_northwind(browser: Browser, supplier: dict, env: dict, catalog: dict, re
         )
 
         page.goto(supplier["login_url"])
-        page.get_by_test_id("email-input").fill(supplier["account"]["username"])
-        page.get_by_test_id("password-input").fill(env[supplier["account"]["password_env"]])
+        page.get_by_test_id("email-input").fill(supplier["accounts"][0]["username"])
+        page.get_by_test_id("password-input").fill(env[supplier["accounts"][0]["password_env"]])
         page.get_by_test_id("sign-in-button").click()
         expect(page.get_by_test_id("sign-in-button")).to_have_count(0, timeout=30_000)
-        result.check("buyer signs in", True, supplier["account"]["username"])
+        result.check("buyer signs in", True, supplier["accounts"][0]["username"])
 
         page.goto(product_url)
         container = page.get_by_test_id("product-container")
@@ -370,11 +370,11 @@ def run_acme(browser: Browser, supplier: dict, env: dict, catalog: dict, result:
         )
 
         page.goto(supplier["login_url"])
-        page.fill("#username", supplier["account"]["username"])
-        page.fill("#password", env[supplier["account"]["password_env"]])
+        page.fill("#username", supplier["accounts"][0]["username"])
+        page.fill("#password", env[supplier["accounts"][0]["password_env"]])
         page.click("button[name=login]")
         expect(page.locator(".woocommerce-MyAccount-navigation")).to_be_visible()
-        result.check("buyer signs in", True, supplier["account"]["username"])
+        result.check("buyer signs in", True, supplier["accounts"][0]["username"])
 
         # The cart persists per account; start from an empty one.
         for _ in range(10):

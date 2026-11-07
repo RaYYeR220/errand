@@ -3,6 +3,11 @@
   "buyer": {
     "company": "Lumen Labs",
     "contact": { "first_name": "Dana", "last_name": "Okafor", "phone": "+1 510 555 0142" },
+    "team": [
+      { "first_name": "Dana", "last_name": "Okafor", "phone": "+1 510 555 0142" },
+      { "first_name": "Sam", "last_name": "Rivera", "phone": "+1 510 555 0143" },
+      { "first_name": "Priya", "last_name": "Nair", "phone": "+1 510 555 0144" }
+    ],
     "company_email": "procurement@lumenlabs.example",
     "address": {
       "company": "Lumen Labs",

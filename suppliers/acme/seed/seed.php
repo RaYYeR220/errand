@@ -240,56 +240,74 @@ if ( $admin ) {
 	wp_set_password( $env( 'ACME_ADMIN_PASSWORD' ), $admin->ID );
 }
 
-$username = $env( 'ACME_BUYER_USERNAME' );
-$email    = strtolower( $env( 'ACME_BUYER_EMAIL' ) );
-$password = $env( 'ACME_BUYER_PASSWORD' );
+/*
+ * Buyer accounts: one per person on the company's team, all with the company's
+ * contract-price role, so concurrent errands each sign in with their own cart.
+ * Buyer N (N > 1) is ACME_BUYER_USERNAME + N, with N inserted before the @ of the email.
+ */
+$team          = ! empty( $buyer['team'] ) ? $buyer['team'] : array( $buyer['contact'] );
+$seeded_buyers = array();
+foreach ( $team as $i => $person ) {
+	$n        = $i + 1;
+	$password = $env( 1 === $n ? 'ACME_BUYER_PASSWORD' : "ACME_BUYER{$n}_PASSWORD", '' );
+	if ( '' === $password ) {
+		WP_CLI::warning( "No password for buyer {$n}; skipping" );
+		continue;
+	}
+	$username = $env( 'ACME_BUYER_USERNAME' ) . ( 1 === $n ? '' : (string) $n );
+	$email    = strtolower( $env( 'ACME_BUYER_EMAIL' ) );
+	if ( 1 !== $n ) {
+		$email = preg_replace( '/@/', "{$n}@", $email, 1 );
+	}
+	$seeded_buyers[] = $username;
 
-$user_id = username_exists( $username );
-if ( ! $user_id ) {
-	$user_id = wp_insert_user(
+	$user_id = username_exists( $username );
+	if ( ! $user_id ) {
+		$user_id = wp_insert_user(
+			array(
+				'user_login' => $username,
+				'user_email' => $email,
+				'user_pass'  => $password,
+				'role'       => 'customer',
+			)
+		);
+		if ( is_wp_error( $user_id ) ) {
+			WP_CLI::error( $user_id->get_error_message() );
+		}
+	} else {
+		wp_set_password( $password, $user_id );
+	}
+
+	$user = new WP_User( $user_id );
+	$user->set_role( 'customer' );
+	$user->add_role( $role );
+	wp_update_user(
 		array(
-			'user_login' => $username,
-			'user_email' => $email,
-			'user_pass'  => $password,
-			'role'       => 'customer',
+			'ID'           => $user_id,
+			'user_email'   => $email,
+			'first_name'   => $person['first_name'],
+			'last_name'    => $person['last_name'],
+			'display_name' => $person['first_name'] . ' ' . $person['last_name'],
 		)
 	);
-	if ( is_wp_error( $user_id ) ) {
-		WP_CLI::error( $user_id->get_error_message() );
+
+	$customer = new WC_Customer( $user_id );
+	$address  = $buyer['address'];
+	foreach ( array( 'billing', 'shipping' ) as $type ) {
+		$customer->{"set_{$type}_first_name"}( $person['first_name'] );
+		$customer->{"set_{$type}_last_name"}( $person['last_name'] );
+		$customer->{"set_{$type}_company"}( $address['company'] );
+		$customer->{"set_{$type}_address_1"}( $address['address_1'] );
+		$customer->{"set_{$type}_address_2"}( $address['address_2'] );
+		$customer->{"set_{$type}_city"}( $address['city'] );
+		$customer->{"set_{$type}_state"}( strtoupper( $address['province'] ) );
+		$customer->{"set_{$type}_postcode"}( $address['postal_code'] );
+		$customer->{"set_{$type}_country"}( strtoupper( $address['country_code'] ) );
 	}
-} else {
-	wp_set_password( $password, $user_id );
+	$customer->set_billing_email( $email );
+	$customer->set_billing_phone( $person['phone'] );
+	$customer->save();
 }
-
-$user = new WP_User( $user_id );
-$user->set_role( 'customer' );
-$user->add_role( $role );
-wp_update_user(
-	array(
-		'ID'           => $user_id,
-		'user_email'   => $email,
-		'first_name'   => $buyer['contact']['first_name'],
-		'last_name'    => $buyer['contact']['last_name'],
-		'display_name' => $buyer['contact']['first_name'] . ' ' . $buyer['contact']['last_name'],
-	)
-);
-
-$customer = new WC_Customer( $user_id );
-$address  = $buyer['address'];
-foreach ( array( 'billing', 'shipping' ) as $type ) {
-	$customer->{"set_{$type}_first_name"}( $buyer['contact']['first_name'] );
-	$customer->{"set_{$type}_last_name"}( $buyer['contact']['last_name'] );
-	$customer->{"set_{$type}_company"}( $address['company'] );
-	$customer->{"set_{$type}_address_1"}( $address['address_1'] );
-	$customer->{"set_{$type}_address_2"}( $address['address_2'] );
-	$customer->{"set_{$type}_city"}( $address['city'] );
-	$customer->{"set_{$type}_state"}( strtoupper( $address['province'] ) );
-	$customer->{"set_{$type}_postcode"}( $address['postal_code'] );
-	$customer->{"set_{$type}_country"}( strtoupper( $address['country_code'] ) );
-}
-$customer->set_billing_email( $email );
-$customer->set_billing_phone( $buyer['contact']['phone'] );
-$customer->save();
 
 wc_delete_product_transients();
-WP_CLI::success( sprintf( 'Acme seeded: %d products, buyer %s, admin %s', $count, $username, $env( 'ACME_ADMIN_USER' ) ) );
+WP_CLI::success( sprintf( 'Acme seeded: %d products, buyers %s, admin %s', $count, implode( ', ', $seeded_buyers ), $env( 'ACME_ADMIN_USER' ) ) );

@@ -6,10 +6,35 @@
       "platform": "medusa-v2-b2b-starter",
       "base_url": "https://northwind.{BASE_DOMAIN}",
       "login_url": "https://northwind.{BASE_DOMAIN}/us/account",
-      "account": {
-        "username": "buyer@lumenlabs.example",
-        "password_env": "NORTHWIND_BUYER_PASSWORD"
-      },
+      "accounts": [
+        {
+          "username": "buyer@lumenlabs.example",
+          "password_env": "NORTHWIND_BUYER_PASSWORD",
+          "contact": {
+            "first_name": "Dana",
+            "last_name": "Okafor",
+            "phone": "+1 510 555 0142"
+          }
+        },
+        {
+          "username": "buyer2@lumenlabs.example",
+          "password_env": "NORTHWIND_BUYER2_PASSWORD",
+          "contact": {
+            "first_name": "Sam",
+            "last_name": "Rivera",
+            "phone": "+1 510 555 0143"
+          }
+        },
+        {
+          "username": "buyer3@lumenlabs.example",
+          "password_env": "NORTHWIND_BUYER3_PASSWORD",
+          "contact": {
+            "first_name": "Priya",
+            "last_name": "Nair",
+            "phone": "+1 510 555 0144"
+          }
+        }
+      ],
       "order_request": [
         {
           "method": "POST",
@@ -31,10 +56,35 @@
       "platform": "woocommerce",
       "base_url": "https://acme.{BASE_DOMAIN}",
       "login_url": "https://acme.{BASE_DOMAIN}/my-account/",
-      "account": {
-        "username": "lumenlabs-buyer",
-        "password_env": "ACME_BUYER_PASSWORD"
-      },
+      "accounts": [
+        {
+          "username": "lumenlabs-buyer",
+          "password_env": "ACME_BUYER_PASSWORD",
+          "contact": {
+            "first_name": "Dana",
+            "last_name": "Okafor",
+            "phone": "+1 510 555 0142"
+          }
+        },
+        {
+          "username": "lumenlabs-buyer2",
+          "password_env": "ACME_BUYER2_PASSWORD",
+          "contact": {
+            "first_name": "Sam",
+            "last_name": "Rivera",
+            "phone": "+1 510 555 0143"
+          }
+        },
+        {
+          "username": "lumenlabs-buyer3",
+          "password_env": "ACME_BUYER3_PASSWORD",
+          "contact": {
+            "first_name": "Priya",
+            "last_name": "Nair",
+            "phone": "+1 510 555 0144"
+          }
+        }
+      ],
       "order_request": [
         {
           "method": "POST",
