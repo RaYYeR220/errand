@@ -226,9 +226,10 @@ export async function runActor(ctx: ActorContext, session: BrowserSession): Prom
           break;
         }
         case "rule_out": {
-          const product = String(args.product);
-          ruledOut.set(product.toLowerCase(), String(args.reason));
-          ctx.ledger.append("agent", `Ruled out: ${product.slice(0, 80)} (${String(args.reason).slice(0, 140)})`, { reason: args.reason, url: session.page.url() }, ctx.supplierId);
+          const product = String(args.product ?? "").slice(0, 120);
+          const reason = String(args.reason ?? "").slice(0, 400);
+          ruledOut.set(product.toLowerCase(), reason);
+          ctx.ledger.append("agent", `Ruled out: ${product.slice(0, 80)} (${reason.slice(0, 140)})`, { product, reason, url: session.page.url() }, ctx.supplierId);
           result = `ruled out. ${progress()}`;
           break;
         }
