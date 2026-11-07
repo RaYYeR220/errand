@@ -5,6 +5,7 @@
 Errand is a purchasing agent for a company's buyers. It signs in to your supplier portals, compares contract prices, stock, lead time and shipping, fills the purchase order, and places it after you approve. Every browser it uses runs in its own microVM on Vultr, holds only a placeholder for the password, and is destroyed when its task ends. The order request itself is held before it leaves the browser until it has been checked and released by a person.
 
 - **Live:** https://errand.207-246-93-94.sslip.io — press *Run an errand*; you are the reviewer who approves the order.
+- **Demo video (3 min):** https://youtu.be/9DKPpHRY748
 - **Supplier portals it works against:** [Northwind Supply](https://northwind.149-28-33-199.sslip.io/us) (Medusa B2B) · [Acme Office & Tech](https://acme.149-28-33-199.sslip.io) (WooCommerce)
 - **Review in five minutes:** [JUDGES.md](JUDGES.md) · **Every claim and its evidence:** [CLAIMS.md](CLAIMS.md)
 

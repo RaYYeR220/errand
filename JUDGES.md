@@ -16,7 +16,7 @@ Watch the run page:
 
 When the run reaches **Order held — waiting for you**:
 
-- the **request body as held** contains the purchase order fields and no password;
+- the **request as held** carries no password: Northwind places the order from the signed-in cart, so the place-order request has no body at all, and the card says so;
 - the **order check** lists item, quantity, ship-to and PO number as read by `clef`, and the budget as computed in code;
 - **Approve and release** sends the request on to the supplier; **Reject** answers the browser with a 403 and nothing reaches the supplier.
 
