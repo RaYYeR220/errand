@@ -2,12 +2,17 @@
 
 **Your agent works signed in. It never sees the password.**
 
+[![ci](https://github.com/RaYYeR220/errand/actions/workflows/ci.yml/badge.svg)](https://github.com/RaYYeR220/errand/actions/workflows/ci.yml)
+
 Errand is a purchasing agent for a company's buyers. It signs in to your supplier portals, compares contract prices, stock, lead time and shipping, fills the purchase order, and places it after you approve. Every browser it uses runs in its own microVM on Vultr, holds only a placeholder for the password, and is destroyed when its task ends. The order request itself is held before it leaves the browser until it has been checked and released by a person.
 
 - **Live:** https://errand.207-246-93-94.sslip.io — press *Run an errand*; you are the reviewer who approves the order.
 - **Demo video (3 min):** https://youtu.be/9DKPpHRY748
 - **Supplier portals it works against:** [Northwind Supply](https://northwind.149-28-33-199.sslip.io/us) (Medusa B2B) · [Acme Office & Tech](https://acme.149-28-33-199.sslip.io) (WooCommerce)
 - **Review in five minutes:** [JUDGES.md](JUDGES.md) · **Every claim and its evidence:** [CLAIMS.md](CLAIMS.md)
+
+![The order, held before it left the browser: clef's checks against the approved intent, the budget computed in code, and the request as held. A person approves or rejects.](docs/img/held.jpg)
+<sub>A live errand on Vultr: *Place order* held before it left the browser. `clef` read the checkout against the approved intent; the budget was computed in code; the reviewer decides.</sub>
 
 <!-- containment:start -->
 | Same browser, same microVM | Real password reached a host it is not bound to | Refused outright by the sandbox runtime | Sign-in to the bound host still works |
@@ -61,12 +66,20 @@ flowchart LR
 
 1. **Plan.** `glm-5.3` turns the request into hard requirements. Anything that moves money or goods (quantity, budget, deadline, ship-to) comes from the validated request, never from the model's reading of it; ship-to must be in the company's address book.
 2. **Sign in and read.** One microVM per supplier, in parallel. Inside each, Chromium is driven over CDP by `glm-5.3-flash`, which sees the page's accessibility tree and a screenshot. The password exists in the VM only as a token like `errand_northwind_password_78347a11e96e`; the agent types the token. The Microsandbox runtime substitutes the real value outside the guest, and only on requests to the host the secret is bound to. Sent anywhere else, the request is refused with `secret_policy_denied`.
+
+   ![Two supplier browsers, each in its own microVM, signed in with a placeholder credential](docs/img/browsing.jpg)
 3. **Check every offer.** Each recorded offer is checked against its own screenshot and page text by `clef`, Vultr's decisions model, which returns a calibrated probability per question (product, price tier, stock, lead time). `nemotron-3.5-content-safety` flags page text that is aimed at the agent; the flag is written to the ledger as a signal, the guarantee never depends on it.
 4. **Compute in a sealed room.** `glm-5.3` writes the landed-cost script. It runs in a second microVM with no network at all; errors go back to the model; the control plane recomputes the answer and only proceeds when both agree.
 5. **Hold the order.** A fresh microVM signs in again and fills the cart and purchase order. When it clicks *Place order*, the request is paused at the browser's network layer by the control plane (CDP request interception), outside the model's reach. `clef` reads the checkout and the held request against the approved intent; the total is compared with the budget **in code**. A failing check rejects the order automatically; otherwise a person approves or rejects it. Any other order-like request to the supplier during checkout is held too.
 6. **Seal.** Every microVM is destroyed. Every step is an entry in a hash-chained ledger (`sha256(prev ‖ canonical(entry))`); the run ends with a sealed receipt.
 
+   ![The supplier's confirmation after approval: order #3, PO number and cost center as approved](docs/img/placed.jpg)
+
 ## What the sandbox absorbs
+
+Every run proves the credential boundary on screen: after its work, each supplier browser sends its credential to `httpbin.org`, a host it is not bound to, and the sandbox runtime refuses the request.
+
+![Containment probe in both supplier microVMs: secret_policy_denied](docs/img/probe.jpg)
 
 The challenge asks for four kinds of containment. Here is where each one lives.
 

@@ -229,7 +229,7 @@ export async function runActor(ctx: ActorContext, session: BrowserSession): Prom
       if ((await ctx.afterAction()) === "stop") return { status: "stopped", summary: "stopped by the run", steps: step };
     }
   }
-  return { status: "max_steps", summary: "step budget exhausted", steps: maxSteps };
+  return { status: "max_steps", summary: `Stopped at the ${maxSteps}-step limit; the offers recorded so far were kept.`, steps: maxSteps };
 }
 
 function describe(name: string, args: Record<string, any>): string {
